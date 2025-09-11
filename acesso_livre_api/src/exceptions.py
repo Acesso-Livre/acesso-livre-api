@@ -1,0 +1,2 @@
+# Exceções globais
+
