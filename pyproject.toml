@@ -4,10 +4,13 @@ version = "0.1.0"
 description = ""
 authors = ["Wandrey <wandrey7dev@gmail.com>"]
 readme = "README.md"
+
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.11"
 fastapi = {extras = ["standard"], version = "^0.116.1"}
 pydantic-settings = {extras = ["dotenv"], version = "^2.10.1"}
+sqlalchemy = "^2.0.43"
+psycopg2-binary = "^2.9.10"
 
 [build-system]
 requires = ["poetry-core"]
