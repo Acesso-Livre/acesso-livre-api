@@ -3,8 +3,11 @@ from fastapi import FastAPI
 from .database import Base, engine, get_db
 from .config import settings
 from .comments.router import router as comments_router
+from .routes import auth
 
 app = FastAPI()
+
+app.include_router(auth.router)
 
 Base.metadata.create_all(bind=engine)
 
