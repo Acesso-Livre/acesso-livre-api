@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, CheckConstraint
+from sqlalchemy.dialects.postgresql import JSON
 from ..database import Base
 
 class Comment(Base):
@@ -14,5 +15,5 @@ class Comment(Base):
     comment = Column(Text, nullable=False)
     location_id = Column(Integer, nullable=True)
     status = Column(String(50), nullable=False) 
-    images = Column(Text, nullable=True)
+    images = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)

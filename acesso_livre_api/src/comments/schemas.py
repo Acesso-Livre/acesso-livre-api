@@ -19,6 +19,9 @@ class CommentCreateResponse(BaseModel):
     id: int
     status: CommentStatus
 
+class CommentUpdateStatus(BaseModel):
+    status: CommentStatus
+
 class CommentResponseWithLocationId(BaseModel):
     id: int
     user_name: str
@@ -29,13 +32,16 @@ class CommentResponseWithLocationId(BaseModel):
 
 class CommentResponseOnlyStatusPending(BaseModel):
     id: int
-    user_name: str 
-    rating: int 
-    comment: str 
-    location_id: Optional[int] = None 
+    user_name: str
+    rating: int
+    comment: str
+    location_id: Optional[int] = None
     status: CommentStatus
     images: List[str]
     created_at: datetime
-    
+
+class CommentListResponse(BaseModel):
+    comments: List[CommentResponseOnlyStatusPending]
+
     class Config:
         from_attributes = True
