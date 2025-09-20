@@ -1,0 +1,1 @@
+# Este arquivo deve conter o modelo SQLAlchemy para a tabela de comentários, incluindo suas relações e atributos.

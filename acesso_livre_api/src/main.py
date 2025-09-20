@@ -3,15 +3,13 @@ from fastapi import FastAPI
 from .database import Base, engine, get_db
 from .config import settings
 from .comments.router import router as comments_router
-from .routes import auth
+from .auth.router import router as auth_router
 
 app = FastAPI()
 
-app.include_router(auth.router)
-
 Base.metadata.create_all(bind=engine)
 
-
+app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(comments_router, prefix="/api/comments", tags=["comments"])
 
 @app.get("/")
@@ -20,5 +18,5 @@ def read_root():
 
 
 @app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
+def read_item(item_id: int, q: Union[str | None] = None):
     return {"item_id": item_id, "q": q}

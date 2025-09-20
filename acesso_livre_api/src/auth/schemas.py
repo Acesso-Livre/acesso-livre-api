@@ -1,0 +1,1 @@
+# Este arquivo deve conter os esquemas Pydantic para validação e serialização de dados relacionados aos comentários.

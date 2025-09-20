@@ -1,0 +1,1 @@
+# Este arquivo deve conter exceções específicas para os comentários, como erros de autorização ou de não encontrado.
