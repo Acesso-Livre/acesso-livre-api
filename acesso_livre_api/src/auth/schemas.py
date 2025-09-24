@@ -1,23 +1,27 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
-from datetime import datetime
+from pydantic import BaseModel, EmailStr
 
-class AdminBase(BaseModel):
+
+class LoginRequest(BaseModel):
     email: EmailStr
-
-
-class AdminCreate(AdminBase):
     password: str
 
 
-class AdminResponse(AdminBase):
-    id: int
-    created_at: datetime
-    model_config = ConfigDict(from_attributes=True)
-
-
-class Token(BaseModel):
+class LoginResponse(BaseModel):
     access_token: str
-    token_type: str
 
-class TokenData(BaseModel):
-    email: str | None = None
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordResponse(BaseModel):
+    message: str
+
+
+class ChangePasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+class ChangePasswordResponse(BaseModel):
+    message: str

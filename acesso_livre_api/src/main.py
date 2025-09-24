@@ -4,6 +4,7 @@ from .database import Base, engine, get_db
 from .config import settings
 from .comments.router import router as comments_router
 from .auth.router import router as auth_router
+from .admins.models.models import Admin
 
 app = FastAPI()
 
