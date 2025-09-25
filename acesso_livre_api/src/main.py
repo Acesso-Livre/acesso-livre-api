@@ -3,14 +3,13 @@ from fastapi import FastAPI
 from .database import Base, engine, get_db
 from .config import settings
 from .comments.router import router as comments_router
-from .auth.router import router as auth_router
-from .admins.models.models import Admin
+from .admins.router import router as admins_router
 
 app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
 
-app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+app.include_router(admins_router, prefix="/api/admins", tags=["admins"])
 app.include_router(comments_router, prefix="/api/comments", tags=["comments"])
 
 @app.get("/")
