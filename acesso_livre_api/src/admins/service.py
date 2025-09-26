@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
 from datetime import datetime, timezone, timedelta
-from jose import jwt
+from jose import jwt, JWTError, ExpiredSignatureError
 from passlib.context import CryptContext
 from ..config import settings
 from fastapi import HTTPException
@@ -40,3 +40,16 @@ def create_access_token(data: dict, expires_delta: int = settings.access_token_e
 
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
+
+def verify_token(token: str):
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        exp = payload.get("exp")
+        if exp is None:
+            return False
+        if datetime.now(timezone.utc).timestamp() > exp:
+            return False
+    except ExpiredSignatureError:
+        return False
+    except JWTError:
+        return False
