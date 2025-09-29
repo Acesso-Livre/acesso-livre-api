@@ -16,9 +16,9 @@ class Location(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    description = Column(String)
+    description = Column(String, nullable=False)
     images = Column(JSON, nullable=True)
-    avg_rating = Column(Float, default=0.0)
+    avg_rating = Column(Float, default=0.0, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
