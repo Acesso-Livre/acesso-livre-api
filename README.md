@@ -43,3 +43,56 @@ Inicie a aplicação FastAPI:
 ```bash
 poetry run uvicorn acesso_livre_api.src.main:app --reload
 ```
+
+## 🗄️ Modelo de Dados
+
+```mermaid
+erDiagram
+    LOCATIONS ||--o{ COMMENTS : "possui"
+    LOCATIONS ||--o{ LOCATION_ACCESSIBILITY : "através de"
+    LOCATION_ACCESSIBILITY }o--|| ACCESSIBILITY_ITEMS : "referencia"
+    COMMENTS }o--|| ADMINS : "aprovado_por"
+
+    LOCATIONS {
+        int id PK
+        string name
+        string description
+        text images
+        float avg_rating
+        datetime created_at
+        datetime updated_at
+    }
+
+    COMMENTS {
+        int id PK
+        string user_name
+        int rating
+        string comment
+        datetime created_at
+        text images
+        string status
+        int location_id FK
+        int approved_by FK "nullable"
+    }
+
+    ACCESSIBILITY_ITEMS {
+        int id PK
+        string name
+        string icon_url
+    }
+
+    LOCATION_ACCESSIBILITY {
+        int location_id FK
+        int item_id FK
+    }
+
+    ADMINS {
+        int id PK
+        string email
+        string password
+        string reset_token_hash "nullable"
+        datetime reset_token_expires "nullable"
+        datetime created_at
+        datetime updated_at
+    }
+```
