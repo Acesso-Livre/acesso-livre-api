@@ -53,3 +53,5 @@ def verify_token(token: str):
         return False
     except JWTError:
         return False
+        
+    return True
