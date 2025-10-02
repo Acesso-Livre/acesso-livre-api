@@ -55,3 +55,40 @@ def verify_token(token: str):
         return False
         
     return True
+
+def request_password_reset(db: Session, email: str):
+    admin = db.query(models.Admins).filter(models.Admins.email == email).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Email não encontrado!")
+    
+    expire = datetime.now(timezone.utc) + timedelta(minutes= settings.reset_token_expire_minutes)
+    to_encode = {"sub": admin.email, "exp": expire}
+    reset_token = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+
+    admin.reset_token_hash = reset_token
+    admin.reset_token_expires = expire
+    db.commit()
+
+    return {"message": "Enviamos um link de recuperação ao email."}
+
+def password_reset(db: Session, token: str, new_password: str):
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        email: str =payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=400, detail="Token inválido")
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Token inválido ou expirado")
+    
+    admin = db.query(models.Admins).filter(models.Admins.email == email).first()
+    if not admin or admin.reset_token_hash != token:
+        raise HTTPException(status_code=400, detail="Token inválido ou já usado")
+    if datetime.now(timezone.utc) > admin.reset_token_expires:
+        raise HTTPException(status_code=400, detail="Token expirado")
+    
+    admin.password = get_password_hash(new_password)
+    admin.reset_token_hash = None
+    admin.reset_token_expires = None
+    db.commit()
+
+    return {"message": "Senha atualizada com sucesso!"}
