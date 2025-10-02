@@ -16,10 +16,10 @@ def register_admin(admin: schemas.AdminCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.LoginResponse)
 def login(
-    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db),
+    admin: schemas.LoginRequest, db: Session = Depends(get_db),
 ):
     admin = service.authenticate_admin(
-        db, form_data.username, form_data.password)
+        db, admin.email, admin.password)
     if not admin:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
