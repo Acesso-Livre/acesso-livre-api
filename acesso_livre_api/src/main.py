@@ -1,9 +1,16 @@
 from typing import Union
+import logging
 from fastapi import FastAPI
 from .database import Base, engine, get_db
 from .config import settings
 from .comments.router import router as comments_router
 from .admins.router import router as admins_router
+
+# Configuração básica de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 app = FastAPI()
 

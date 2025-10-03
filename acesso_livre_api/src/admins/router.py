@@ -1,17 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from . import service, schemas
+from fastapi.security import OAuth2PasswordBearer
+import logging
+from . import service, schemas, exceptions
 from ..database import get_db
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/admins/login")
 
-
-@router.post("/register", response_model=schemas.AdminCreate)
+@router.post("/register", response_model=schemas.RegisterResponse, status_code=status.HTTP_201_CREATED, responses={201: {"description": "Administrador criado com sucesso"}})
 def register_admin(admin: schemas.AdminCreate, db: Session = Depends(get_db)):
-    return service.create_admin(db, admin)
+    service.create_admin(db, admin)
+    return {"status": "success"}
 
 
 @router.post("/login", response_model=schemas.LoginResponse)
@@ -21,11 +23,7 @@ def login(
     admin = service.authenticate_admin(
         db, admin.email, admin.password)
     if not admin:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email ou senha incorretos",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise exceptions.AdminAuthenticationFailedException()
 
     access_token = service.create_access_token(
         data={"sub": admin.email}

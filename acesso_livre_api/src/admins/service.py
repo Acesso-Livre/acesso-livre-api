@@ -1,12 +1,16 @@
 from sqlalchemy.orm import Session
-from . import models, schemas
+from . import models, schemas, exceptions
 from datetime import datetime, timezone, timedelta
 from jose import jwt, JWTError, ExpiredSignatureError
 from passlib.context import CryptContext
 from ..config import settings
-from fastapi import HTTPException
+import logging
+import re
+
+logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+PASSWORD_PATTERN = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$")
 
 
 def get_password_hash(password: str):
@@ -17,15 +21,34 @@ def verify_password(plain_password: str, hashed_password: str):
 
 
 def create_admin(db: Session, admin: schemas.AdminCreate):
-    if db.query(models.Admins).filter(models.Admins.email == admin.email).first():
-        raise HTTPException(status_code=400, detail="Email já cadastrado")
-    data = admin.model_dump()
-    data['password'] = get_password_hash(admin.password)
-    db_admin = models.Admins(**data, created_at=datetime.now(timezone.utc))
-    db.add(db_admin)
-    db.commit()
-    db.refresh(db_admin)
-    return db_admin
+    try:
+        # Verificar se email já existe
+        if db.query(models.Admins).filter(models.Admins.email == admin.email).first():
+            raise exceptions.AdminAlreadyExistsException(email=admin.email)
+        
+        # Validar robustez da senha
+        if not PASSWORD_PATTERN.match(admin.password):
+            raise exceptions.AdminWeakPasswordException(
+                "A senha deve ter pelo menos 8 caracteres, incluindo letra maiúscula, minúscula, número e caractere especial."
+            )
+        
+        data = admin.model_dump()
+        data['password'] = get_password_hash(admin.password)
+        db_admin = models.Admins(**data, created_at=datetime.now(timezone.utc))
+        db.add(db_admin)
+        db.commit()
+        db.refresh(db_admin)
+        return True
+            
+    except exceptions.AdminAlreadyExistsException:
+        raise
+    except exceptions.AdminInvalidEmailException:
+        raise
+    except exceptions.AdminWeakPasswordException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao criar admin: {str(e)}")
+        raise exceptions.AdminCreationException()
 
 def authenticate_admin(db: Session, email: str, password: str):
     admin = db.query(models.Admins).filter(models.Admins.email == email).first()
@@ -59,7 +82,7 @@ def verify_token(token: str):
 def request_password_reset(db: Session, email: str):
     admin = db.query(models.Admins).filter(models.Admins.email == email).first()
     if not admin:
-        raise HTTPException(status_code=404, detail="Email não encontrado!")
+        raise exceptions.AdminNotFoundException()
     
     expire = datetime.now(timezone.utc) + timedelta(minutes= settings.reset_token_expire_minutes)
     to_encode = {"sub": admin.email, "exp": expire}
@@ -76,15 +99,17 @@ def password_reset(db: Session, token: str, new_password: str):
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         email: str =payload.get("sub")
         if email is None:
-            raise HTTPException(status_code=400, detail="Token inválido")
+            raise exceptions.InvalidResetTokenException("Token inválido")
     except JWTError:
-        raise HTTPException(status_code=400, detail="Token inválido ou expirado")
+        raise exceptions.InvalidResetTokenException("Token inválido ou expirado")
     
     admin = db.query(models.Admins).filter(models.Admins.email == email).first()
-    if not admin or admin.reset_token_hash != token:
-        raise HTTPException(status_code=400, detail="Token inválido ou já usado")
+    if not admin:
+        raise exceptions.AdminNotFoundException()
+    if admin.reset_token_hash != token:
+        raise exceptions.ResetTokenAlreadyUsedException()
     if datetime.now(timezone.utc) > admin.reset_token_expires:
-        raise HTTPException(status_code=400, detail="Token expirado")
+        raise exceptions.ExpiredResetTokenException()
     
     admin.password = get_password_hash(new_password)
     admin.reset_token_hash = None
