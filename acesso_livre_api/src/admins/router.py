@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer
 import logging
@@ -30,7 +30,18 @@ def login(
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+
 @router.get("/check-token")
-def check_token(token: str):
+def check_token(token: str = Depends(oauth2_scheme)):
     is_valid = service.verify_token(token)
     return {"valid": is_valid}
+
+
+@router.post("/forgot-password", response_model=schemas.ResetPasswordResponse)
+def forgot_password(request: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+    return service.request_password_reset(db, request.email)
+
+
+@router.post("/password-reset", response_model=schemas.ChangePasswordResponse)
+def password_reset(request: schemas.ChangePasswordRequest, db: Session = Depends(get_db)):
+    return service.password_reset(db, request.token, request.new_password)
