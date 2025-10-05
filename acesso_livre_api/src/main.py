@@ -5,6 +5,7 @@ from .database import Base, engine, get_db
 from .config import settings
 from .comments.router import router as comments_router
 from .admins.router import router as admins_router
+from .openapi_config import create_custom_openapi
 
 # Configuração básica de logging
 logging.basicConfig(
@@ -13,6 +14,9 @@ logging.basicConfig(
 )
 
 app = FastAPI()
+
+# Configuração OpenAPI obrigatória com autenticação JWT
+app.openapi = create_custom_openapi(app)
 
 Base.metadata.create_all(bind=engine)
 
