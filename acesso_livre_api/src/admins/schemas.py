@@ -33,6 +33,7 @@ class ResetPasswordResponse(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     token: str
+    email: EmailStr
     new_password: str
 
 

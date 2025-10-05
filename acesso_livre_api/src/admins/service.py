@@ -4,6 +4,7 @@ from datetime import datetime, timezone, timedelta
 from jose import jwt, JWTError, ExpiredSignatureError
 from passlib.context import CryptContext
 from ..config import settings
+from . import utils
 import logging
 import re
 
@@ -79,38 +80,48 @@ def verify_token(token: str):
         
     return True
 
-def request_password_reset(db: Session, email: str):
+async def request_password_reset(db: Session, email: str):
     admin = db.query(models.Admins).filter(models.Admins.email == email).first()
     if not admin:
         raise exceptions.AdminNotFoundException()
     
     expire = datetime.now(timezone.utc) + timedelta(minutes= settings.reset_token_expire_minutes)
-    to_encode = {"sub": admin.email, "exp": expire}
+    code = await utils.gen_code_for_reset_password()
+    to_encode = {"sub": admin.email, "exp": expire, "code": code}
     reset_token = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
     admin.reset_token_hash = reset_token
     admin.reset_token_expires = expire
     db.commit()
-
+    print(f"Token de reset para {admin.email}: {reset_token}")  # Simula envio de email
     return {"message": "Enviamos um link de recuperação ao email."}
 
-def password_reset(db: Session, token: str, new_password: str):
-    try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        email: str =payload.get("sub")
-        if email is None:
-            raise exceptions.InvalidResetTokenException("Token inválido")
-    except JWTError:
-        raise exceptions.InvalidResetTokenException("Token inválido ou expirado")
-    
+def password_reset(db: Session, code: str, email: str, new_password: str):
     admin = db.query(models.Admins).filter(models.Admins.email == email).first()
     if not admin:
         raise exceptions.AdminNotFoundException()
-    if admin.reset_token_hash != token:
-        raise exceptions.ResetTokenAlreadyUsedException()
-    if datetime.now(timezone.utc) > admin.reset_token_expires:
-        raise exceptions.ExpiredResetTokenException()
     
+    if not admin.reset_token_hash:
+        raise exceptions.InvalidResetTokenException("Token de reset não encontrado")
+
+    try:
+        payload = jwt.decode(admin.reset_token_hash, settings.secret_key, algorithms=[settings.algorithm])
+        stored_code = payload.get("code")
+        exp = payload.get("exp")
+        if stored_code != code:
+            raise exceptions.InvalidResetTokenException("Código inválido")
+    except JWTError:
+        raise exceptions.InvalidResetTokenException("Token inválido ou corrompido")
+
+    if datetime.now(timezone.utc).timestamp() > exp:
+        raise exceptions.ExpiredResetTokenException()
+
+    # Validar robustez da nova senha
+    if not PASSWORD_PATTERN.match(new_password):
+        raise exceptions.AdminWeakPasswordException(
+            "A senha deve ter pelo menos 8 caracteres, incluindo letra maiúscula, minúscula, número e caractere especial."
+        )
+
     admin.password = get_password_hash(new_password)
     admin.reset_token_hash = None
     admin.reset_token_expires = None

@@ -43,10 +43,10 @@ def check_token(token: str = Depends(oauth2_scheme)):
 
 
 @router.post("/forgot-password", response_model=schemas.ResetPasswordResponse)
-def forgot_password(request: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
-    return service.request_password_reset(db, request.email)
+async def forgot_password(request: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+    return await service.request_password_reset(db, request.email)
 
 
 @router.post("/password-reset", response_model=schemas.ChangePasswordResponse)
 def password_reset(request: schemas.ChangePasswordRequest, db: Session = Depends(get_db)):
-    return service.password_reset(db, request.token, request.new_password)
+    return service.password_reset(db, request.token, request.email, request.new_password)
