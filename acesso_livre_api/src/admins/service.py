@@ -93,7 +93,6 @@ async def request_password_reset(db: Session, email: str):
     admin.reset_token_hash = reset_token
     admin.reset_token_expires = expire
     db.commit()
-    print(f"Token de reset para {admin.email}: {reset_token}")  # Simula envio de email
     return {"message": "Enviamos um link de recuperação ao email."}
 
 def password_reset(db: Session, code: str, email: str, new_password: str):
