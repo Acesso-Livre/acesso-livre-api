@@ -67,12 +67,11 @@ def create_access_token(data: dict, expires_delta: int = settings.access_token_e
 
 def verify_token(token: str):
     try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        exp = payload.get("exp")
-        if exp is None:
-            return False
-        if datetime.now(timezone.utc).timestamp() > exp:
-            return False
+        jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=[settings.algorithm],
+        )
     except ExpiredSignatureError:
         return False
     except JWTError:
@@ -106,16 +105,13 @@ def password_reset(db: Session, code: str, email: str, new_password: str):
     try:
         payload = jwt.decode(admin.reset_token_hash, settings.secret_key, algorithms=[settings.algorithm])
         stored_code = payload.get("code")
-        exp = payload.get("exp")
         if stored_code != code:
             raise exceptions.InvalidResetTokenException("Código inválido")
+    except ExpiredSignatureError:
+        return False
     except JWTError:
         raise exceptions.InvalidResetTokenException("Token inválido ou corrompido")
 
-    if datetime.now(timezone.utc).timestamp() > exp:
-        raise exceptions.ExpiredResetTokenException()
-
-    # Validar robustez da nova senha
     if not PASSWORD_PATTERN.match(new_password):
         raise exceptions.AdminWeakPasswordException(
             "A senha deve ter pelo menos 8 caracteres, incluindo letra maiúscula, minúscula, número e caractere especial."
