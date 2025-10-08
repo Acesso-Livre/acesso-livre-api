@@ -1,6 +1,12 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, CheckConstraint
 from sqlalchemy.dialects.postgresql import JSON
 from ..database import Base
+from enum import Enum
+
+class CommentStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved" 
+    REJECTED = "rejected"
 
 class Comment(Base):
     __tablename__ = "comments"
@@ -14,6 +20,6 @@ class Comment(Base):
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=False)
     location_id = Column(Integer, nullable=True)
-    status = Column(String(50), nullable=False) 
+    status = Column(String(50), nullable=False, default=CommentStatus.PENDING) 
     images = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)

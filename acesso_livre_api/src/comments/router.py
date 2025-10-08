@@ -12,13 +12,13 @@ def create_comment(comment: schemas.CommentCreate, db: Session = Depends(get_db)
         raise HTTPException(status_code=400, detail="Error creating comment")
     return comment
 
-# TODO: Adicionar autenticacao
 @router.get("/pending", response_model=schemas.CommentListResponse)
 def get_comments_with_status_pending(db: Session = Depends(get_db)):
     db_comments = service.get_comments_with_status_pending(db)
     if not db_comments:
         raise HTTPException(status_code=404, detail="No pending comments found")
-    return schemas.CommentListResponse(comments=db_comments)
+    comments = [schemas.CommentResponseOnlyStatusPending.model_validate(comment) for comment in db_comments]
+    return schemas.CommentListResponse(comments=comments)
 
 # TODO: Adicionar autenticacao
 @router.patch("/{comment_id}/status", response_model=schemas.CommentResponseOnlyStatusPending)

@@ -27,7 +27,7 @@ def get_comments_with_status_pending(db:Session):
 
 def update_comment_status(db: Session, comment_id: int, new_status: schemas.CommentUpdateStatus):
     comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
-    if comment and comment.status != "pending" and comment.status != new_status.status:
+    if comment and new_status.status in ["approved", "rejected"]:
         comment.status = new_status.status
         db.commit()
         db.refresh(comment)

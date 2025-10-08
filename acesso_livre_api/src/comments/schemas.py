@@ -11,7 +11,6 @@ class CommentStatus(str, Enum):
 class CommentCreate(BaseModel):
     user_name: str = Field(..., max_length=30)
     rating: int = Field(..., ge=1, le=5)
-    status: CommentStatus = Field(default=CommentStatus.PENDING)
     comment: str = Field(..., max_length=500)
     images: Optional[List[str]] = None
 
@@ -39,6 +38,9 @@ class CommentResponseOnlyStatusPending(BaseModel):
     status: CommentStatus
     images: List[str]
     created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 class CommentListResponse(BaseModel):
     comments: List[CommentResponseOnlyStatusPending]
