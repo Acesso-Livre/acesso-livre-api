@@ -38,7 +38,9 @@ jobs:
         run: poetry install --no-root
 
       - name: Run tests
-        run: poetry run pytest --junitxml=test-results/results.xml
+        run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          poetry run pytest --junitxml=test-results/results.xml
 
       - name: Upload test results
         if: always()
