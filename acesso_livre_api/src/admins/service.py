@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 PASSWORD_PATTERN = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$")
 
-
 def get_password_hash(password: str):
     return pwd_context.hash(password)
 
@@ -25,7 +24,7 @@ def create_admin(db: Session, admin: schemas.AdminCreate):
     try:
         # Verificar se email já existe
         if db.query(models.Admins).filter(models.Admins.email == admin.email).first():
-            raise exceptions.AdminAlreadyExistsException(email=admin.email)
+            raise exceptions.AdminAlreadyExistsException()
         
         # Validar robustez da senha
         if not PASSWORD_PATTERN.match(admin.password):
@@ -79,13 +78,13 @@ def verify_token(token: str):
         
     return True
 
-async def request_password_reset(db: Session, email: str):
+def request_password_reset(db: Session, email: str):
     admin = db.query(models.Admins).filter(models.Admins.email == email).first()
     if not admin:
         raise exceptions.AdminNotFoundException()
     
     expire = datetime.now(timezone.utc) + timedelta(minutes= settings.reset_token_expire_minutes)
-    code = await utils.gen_code_for_reset_password()
+    code = utils.gen_code_for_reset_password()
     to_encode = {"sub": admin.email, "exp": expire, "code": code}
     reset_token = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
