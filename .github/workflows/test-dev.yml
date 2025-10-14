@@ -37,6 +37,9 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-root
 
+      - name: Set environment variables for tests
+        run: cp .env.test .env
+
       - name: Run tests
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)
