@@ -28,6 +28,10 @@ app.dependency_overrides[get_db] = override_get_db
 
 @pytest_asyncio.fixture
 async def client():
+    Base.metadata.create_all(bind=connection)
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
+
+    Base.metadata.drop_all(bind=connection)
