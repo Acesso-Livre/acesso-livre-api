@@ -1,7 +1,9 @@
 from typing import Union
 import logging
-from fastapi import FastAPI
-from .database import Base, engine, get_db
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from .database import Base, engine
 from .config import settings
 from .comments.router import router as comments_router
 from .admins.router import router as admins_router
@@ -15,6 +17,19 @@ logging.basicConfig(
 
 app = FastAPI()
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Manipulador para capturar erros de validação do Pydantic (422) e
+    retornar um erro padronizado 500
+    """
+    logging.error(f"Erro de validação de dados: {exc.errors()}")
+    
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Erro interno ao processar solicitação"},
+    )
+
 # Configuração OpenAPI obrigatória com autenticação JWT
 app.openapi = create_custom_openapi(app)
 
@@ -23,11 +38,6 @@ Base.metadata.create_all(bind=engine)
 app.include_router(admins_router, prefix="/api/admins",tags=["Administração"])
 app.include_router(comments_router, prefix="/api/comments", tags=["comments"])
 
-@app.get("/")
+@app.get("/", tags=["Status"])
 def read_root():
-    return {"Hello": settings.api}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str | None] = None):
-    return {"item_id": item_id, "q": q}
+    return {"status": "active"}
