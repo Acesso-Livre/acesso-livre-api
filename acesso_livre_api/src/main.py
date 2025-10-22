@@ -42,8 +42,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 # Configuração OpenAPI obrigatória com autenticação JWT
 app.openapi = create_custom_openapi(app)
 
-Base.metadata.create_all(bind=engine)
-
 app.include_router(admins_router, prefix="/api/admins",tags=["Administração"])
 app.include_router(comments_router, prefix="/api/comments", tags=["comments"])
 
