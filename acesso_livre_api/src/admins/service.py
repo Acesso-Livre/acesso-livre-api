@@ -6,12 +6,11 @@ from passlib.context import CryptContext
 from ..config import settings
 from . import utils
 import logging
-import re
+from .schemas import AdminCreate
 
 logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-PASSWORD_PATTERN = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$")
 
 def get_password_hash(password: str):
     return pwd_context.hash(password)
@@ -22,16 +21,9 @@ def verify_password(plain_password: str, hashed_password: str):
 
 def create_admin(db: Session, admin: schemas.AdminCreate):
     try:
-        # Verificar se email já existe
-        if db.query(models.Admins).filter(models.Admins.email == admin.email).first():
+        if db.query(models.Admins).filter(models.Admins.email == admin.email).first() is not None:
             raise exceptions.AdminAlreadyExistsException()
-        
-        # Validar robustez da senha
-        if not PASSWORD_PATTERN.match(admin.password):
-            raise exceptions.AdminWeakPasswordException(
-                "A senha deve ter pelo menos 8 caracteres, incluindo letra maiúscula, minúscula, número e caractere especial."
-            )
-        
+
         data = admin.model_dump()
         data['password'] = get_password_hash(admin.password)
         db_admin = models.Admins(**data, created_at=datetime.now(timezone.utc))
@@ -39,7 +31,7 @@ def create_admin(db: Session, admin: schemas.AdminCreate):
         db.commit()
         db.refresh(db_admin)
         return True
-            
+
     except exceptions.AdminAlreadyExistsException:
         raise
     except exceptions.AdminInvalidEmailException:
@@ -97,7 +89,7 @@ def password_reset(db: Session, code: str, email: str, new_password: str):
     admin = db.query(models.Admins).filter(models.Admins.email == email).first()
     if not admin:
         raise exceptions.AdminNotFoundException()
-    
+
     if not admin.reset_token_hash:
         raise exceptions.InvalidResetTokenException("Token de reset não encontrado")
 
@@ -107,13 +99,20 @@ def password_reset(db: Session, code: str, email: str, new_password: str):
         if stored_code != code:
             raise exceptions.InvalidResetTokenException("Código inválido")
     except ExpiredSignatureError:
-        return False
+        raise exceptions.InvalidResetTokenException("Token expirado")
     except JWTError:
         raise exceptions.InvalidResetTokenException("Token inválido ou corrompido")
-
-    if not PASSWORD_PATTERN.match(new_password):
+    
+    try:
+        # Passamos um email fictício apenas para satisfazer o validador do Pydantic.
+        # O email não é usado, apenas a validação da senha é acionada.
+        AdminCreate(email="placeholder@example.com", password=new_password)
+    except exceptions.AdminWeakPasswordException as e:
+        raise e  # Repassa a exceção específica de senha fraca
+    except Exception:
+        # Captura outras exceções de validação, mas lança a de senha fraca por contexto
         raise exceptions.AdminWeakPasswordException(
-            "A senha deve ter pelo menos 8 caracteres, incluindo letra maiúscula, minúscula, número e caractere especial."
+            "A senha fornecida é inválida."
         )
 
     admin.password = get_password_hash(new_password)

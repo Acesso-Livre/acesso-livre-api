@@ -111,14 +111,13 @@ def test_password_reset_expired_token():
 
     db_mock.query.return_value.filter.return_value.first.return_value = mock_admin
 
-    result = service.password_reset(
-        db=db_mock,
-        code=code,
-        email=email,
-        new_password=new_password
-    )
-
-    assert result is False
+    with pytest.raises(InvalidResetTokenException) as exc_info:
+        service.password_reset(
+            db=db_mock,
+            code=code,
+            email=email,
+            new_password=new_password
+        )
 
 def test_password_reset_weak_password():
     db_mock = MagicMock()
@@ -169,6 +168,32 @@ def test_password_reset_wrong_code():
         service.password_reset(
             db=db_mock,
             code=wrong_code,
+            email=email,
+            new_password=new_password
+        )
+
+def test_password_reset_expired_code():
+    db_mock = MagicMock()
+    
+    email = "admin@test.com"
+    code = "123456"
+    new_password = "NewValidPassword123!"
+
+    # Token expirado
+    expire = datetime.now(timezone.utc) - timedelta(minutes=1)
+    to_encode = {"sub": email, "exp": expire, "code": code}
+    reset_token = service.jwt.encode(to_encode, service.settings.secret_key, algorithm=service.settings.algorithm)
+
+    mock_admin = MagicMock()
+    mock_admin.email = email
+    mock_admin.reset_token_hash = reset_token   
+    mock_admin.reset_token_expires = expire
+    db_mock.query.return_value.filter.return_value.first.return_value = mock_admin
+    
+    with pytest.raises(InvalidResetTokenException) as exc_info:
+        service.password_reset(
+            db=db_mock,
+            code=code,
             email=email,
             new_password=new_password
         )

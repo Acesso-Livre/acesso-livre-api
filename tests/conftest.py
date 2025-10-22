@@ -1,18 +1,37 @@
-import pytest
-import os
+# Only for integration tests
+# it's used to create a test database and override the get_db dependency
+import pytest_asyncio
+from httpx import AsyncClient, ASGITransport
+from acesso_livre_api.src.main import app
+from acesso_livre_api.src.database import get_db, Base
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
 
-@pytest.fixture(scope='session', autouse=True)
-def set_test_environment_variables():
-    """
-    Define variáveis de ambiente fictícias para a sessão de testes.
-    
-    Isso previne o erro de validação do Pydantic ao carregar as configurações
-    durante a coleta de testes, garantindo que o módulo de configuração
-    possa ser importado sem depender do ambiente de execução.
-    """
-    os.environ['API'] = "Acesso Livre API"
-    os.environ['DATABASE_URL'] = "postgresql://test:test@localhost/testdb"
-    os.environ['SECRET_KEY'] = "test-secret-key"
-    os.environ['ALGORITHM'] = "HS256"
-    os.environ['ACCESS_TOKEN_EXPIRE_MINUTES'] = "30"
-    os.environ['RESET_TOKEN_EXPIRE_MINUTES'] = "15"
+# Test database setup
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+test_engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False}
+)
+connection = test_engine.connect()
+Base.metadata.create_all(bind=connection)
+TestingSessionLocal = sessionmaker(bind=connection, autocommit=False, autoflush=False)
+
+def override_get_db():
+    try:
+        db = TestingSessionLocal()
+        yield db
+    finally:
+        db.close()
+
+app.dependency_overrides[get_db] = override_get_db
+
+@pytest_asyncio.fixture
+async def client():
+    Base.metadata.create_all(bind=connection)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+
+    Base.metadata.drop_all(bind=connection)

@@ -65,8 +65,8 @@ def check_token(token: str = Depends(oauth2_scheme)):
     response_model=schemas.ResetPasswordResponse,
     **FORGOT_PASSWORD_DOCS
 )
-async def forgot_password(request: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
-    return await service.request_password_reset(db, request.email)
+def forgot_password(request: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+    return service.request_password_reset(db, request.email)
 
 
 @router.post(
