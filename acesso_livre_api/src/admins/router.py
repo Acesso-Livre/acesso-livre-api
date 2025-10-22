@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
-from fastapi.security import OAuth2PasswordBearer
 import logging
 from . import service, schemas, exceptions, dependencies
 from ..database import get_db
+from .dependencies import oauth2_scheme
 from .docs import (
     REGISTER_DOCS,
     LOGIN_DOCS,
@@ -14,8 +14,6 @@ from .docs import (
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/admins/login")
 
 @router.post(
     "/register",
