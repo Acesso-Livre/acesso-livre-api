@@ -21,13 +21,22 @@ app = FastAPI()
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """
     Manipulador para capturar erros de validação do Pydantic (422) e
-    retornar um erro padronizado 500
+    retornar uma resposta JSON estruturada e amigável.
     """
-    logging.error(f"Erro de validação de dados: {exc.errors()}")
-    
+    formatted_errors = []
+    for error in exc.errors():
+        field = ".".join(str(loc) for loc in error["loc"] if str(loc) != 'body')
+        message = error["msg"]
+        formatted_errors.append({"field": field, "message": message})
+
+    logging.error(f"Erro de validação de dados: {formatted_errors}")
+
     return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Erro interno ao processar solicitação"},
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "detail": "Ocorreram erros de validação.",
+            "errors": formatted_errors,
+        },
     )
 
 # Configuração OpenAPI obrigatória com autenticação JWT

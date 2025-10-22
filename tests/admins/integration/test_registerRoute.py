@@ -56,8 +56,13 @@ async def test_register_weak_password(client):
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_register_general_error(client):
-    """Testa o registro de um administrador que causa um erro geral (simulado)."""
+    """Testa o registro de um administrador com payload vazio, esperando um erro de validação."""
     res = await client.post("/api/admins/register", json={})
 
-    assert res.status_code == 500
-    assert res.json()["detail"] == "Erro interno ao processar solicitação"
+    assert res.status_code == 422
+    response_json = res.json()
+    assert response_json["detail"] == "Ocorreram erros de validação."
+
+    error_fields = [error['field'] for error in response_json['errors']]
+    assert 'email' in error_fields
+    assert 'password' in error_fields

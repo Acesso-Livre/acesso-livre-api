@@ -15,6 +15,9 @@ python-jose = "^3.5.0"
 passlib = "^1.7.4"
 bcrypt = "<4.0"
 
+[tool.pytest.ini_options]
+markers = ["integration: marca testes de integração"]
+
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.2"
 pytest-mock = "^3.15.1"
