@@ -27,10 +27,23 @@ REGISTER_DOCS = {
                         "email_exists": {
                             "summary": "Email já cadastrado",
                             "value": {"detail": "Email já cadastrado"}
-                        },
+                        }
+                    }
+                }
+            }
+        },
+        422: {
+            "description": "Erro de validação",
+            "content": {
+                "application/json": {
+                    "examples": {
                         "weak_password": {
-                            "summary": "Senha muito fraca",
+                            "summary": "Senha fraca",
                             "value": {"detail": "A senha deve ter pelo menos 8 caracteres, incluindo letra maiúscula, minúscula, número e caractere especial."}
+                        },
+                        "invalid_email": {
+                            "summary": "Email inválido",
+                            "value": {"detail": "O email fornecido não é válido"}
                         }
                     }
                 }
@@ -56,10 +69,26 @@ LOGIN_DOCS = {
             }
         },
         401: {
-            "description": "Credenciais inválidas",
+            "description": "Email ou senha incorretos",
             "content": {
                 "application/json": {
-                    "example": {"detail": "Credenciais inválidas"}
+                    "example": {"detail": "Email ou senha incorretos"}
+                }
+            }
+        },
+        422: {
+            "description": "Erro de validação",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": [
+                            {
+                                "loc": ["body", "email"],
+                                "msg": "Field required",
+                                "type": "missing"
+                            }
+                        ]
+                    }
                 }
             }
         }
@@ -123,6 +152,22 @@ FORGOT_PASSWORD_DOCS = {
                     "example": {"detail": "Administrador não encontrado"}
                 }
             }
+        },
+        422: {
+            "description": "Erro de validação",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": [
+                            {
+                                "loc": ["body", "email"],
+                                "msg": "Field required",
+                                "type": "missing"
+                            }
+                        ]
+                    }
+                }
+            }
         }
     },
     "tags": ["Administração"]
@@ -152,10 +197,6 @@ PASSWORD_RESET_DOCS = {
                         "expired_code": {
                             "summary": "Código expirado",
                             "value": {"detail": "Código de recuperação expirado"}
-                        },
-                        "weak_password": {
-                            "summary": "Senha fraca",
-                            "value": {"detail": "A senha deve ter pelo menos 8 caracteres, incluindo letra maiúscula, minúscula, número e caractere especial."}
                         }
                     }
                 }
@@ -166,6 +207,19 @@ PASSWORD_RESET_DOCS = {
             "content": {
                 "application/json": {
                     "example": {"detail": "Administrador não encontrado"}
+                }
+            }
+        },
+        422: {
+            "description": "Erro de validação",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "weak_password": {
+                            "summary": "Senha fraca",
+                            "value": {"detail": "A senha deve ter pelo menos 8 caracteres, incluindo letra maiúscula, minúscula, número e caractere especial."}
+                        }
+                    }
                 }
             }
         }

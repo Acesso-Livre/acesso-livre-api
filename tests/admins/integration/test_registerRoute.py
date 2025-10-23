@@ -35,7 +35,7 @@ async def test_register_invalid_email(client):
     }
     res = await client.post("/api/admins/register", json=userInvalidEmail)
 
-    assert res.status_code == 400
+    assert res.status_code == 422
     assert res.json()["detail"] == "O email fornecido não é válido"
 
 @pytest.mark.integration
@@ -49,7 +49,7 @@ async def test_register_weak_password(client):
 
     res = await client.post("/api/admins/register", json=userWeakPass)
 
-    assert res.status_code == 400
+    assert res.status_code == 422
     assert res.json()["detail"] == "A senha deve ter pelo menos 8 caracteres, incluindo letra maiúscula, minúscula, número e caractere especial."
 
 

@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
-
-from acesso_livre_api.src.admins import service
+import pytest
+from acesso_livre_api.src.admins import service, exceptions
 from acesso_livre_api.src.admins.schemas import AdminCreate
 
 
@@ -39,12 +39,13 @@ def test_auth_admin_invalid_email():
     mock_query.filter.return_value = mock_filter
     db_mock.query.return_value = mock_query
 
-    admin = AdminCreate( 
-        email="validadmin@gmail.com",
-        password="ValidPass123!")
+    admin = AdminCreate(
+        email="invalid@user.com",
+        password="ValidPass123!"
+    )
     
-    result = service.authenticate_admin(db_mock, admin.email, admin.password)
-    assert result is None
+    with pytest.raises(exceptions.AdminAuthenticationFailedException):
+        service.authenticate_admin(db_mock, admin.email, admin.password)
 
 def test_auth_admin_invalid_password():
     db_mock = MagicMock()
@@ -57,10 +58,10 @@ def test_auth_admin_invalid_password():
     mock_query.filter.return_value = mock_filter
     db_mock.query.return_value = mock_query
 
-    admin = AdminCreate( 
+    admin = AdminCreate(
         email="validadmin@gmail.com",
-        password="ValidPass123!")
-    
+        password="WrongPass123!"
+    )
 
-    result = service.authenticate_admin(db_mock, admin.email, "WrongPass123!")
-    assert result is None
+    with pytest.raises(exceptions.AdminAuthenticationFailedException):
+        service.authenticate_admin(db_mock, admin.email, admin.password)

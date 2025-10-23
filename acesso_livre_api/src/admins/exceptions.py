@@ -63,7 +63,7 @@ class AdminInvalidEmailException(AdminException):
 
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="O email fornecido não é válido",
         )
 
@@ -79,7 +79,7 @@ class AdminWeakPasswordException(AdminException):
         ),
     ):
         super().__init__(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=message,
         )
 
@@ -103,6 +103,34 @@ class ExpiredResetTokenException(AdminException):
             detail="Token de recuperação de senha expirado",
         )
 
+
+class PasswordResetException(AdminException):
+    """Exceção levantada quando ocorre erro geral no reset de senha"""
+
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao resetar a senha",
+        )
+
+
+class PasswordResetRequestException(AdminException):
+    """Exceção levantada quando ocorre erro na solicitação de reset de senha"""
+
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao solicitar reset de senha",
+        )
+
+class TokenCreationException(AdminException):
+    """Exceção levantada quando ocorre erro na criação do token de acesso"""
+
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao criar token de acesso",
+        )
 
 class ResetTokenAlreadyUsedException(AdminException):
     """Exceção levantada quando o token de reset de senha já foi usado"""

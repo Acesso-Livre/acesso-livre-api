@@ -32,7 +32,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     logging.error(f"Erro de validação de dados: {formatted_errors}")
 
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={
             "detail": "Ocorreram erros de validação.",
             "errors": formatted_errors,
