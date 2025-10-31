@@ -1,11 +1,10 @@
-"""
-Módulo de documentação para endpoints de administradores.
+"""Módulo de documentação para endpoints de administradores.
 
 Contém todas as definições de documentação OpenAPI/Swagger
 para manter o código do router limpo e organizado.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
 
 # Documentação para o endpoint de registro
 REGISTER_DOCS = {
