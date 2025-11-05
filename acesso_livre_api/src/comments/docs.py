@@ -49,7 +49,7 @@ CREATE_COMMENT_DOCS = {
             },
         },
     },
-    "tags": ["comments"],
+    "tags": ["Comentários"],
     "status_code": 201,
 }
 
@@ -82,7 +82,7 @@ GET_PENDING_COMMENTS_DOCS = {
             },
         },
     },
-    "tags": ["comments"],
+    "tags": ["Comentários"],
 }
 
 # Documentação para o endpoint de atualizar status do comentário
@@ -137,7 +137,7 @@ UPDATE_COMMENT_STATUS_DOCS = {
             },
         },
     },
-    "tags": ["comments"],
+    "tags": ["Comentários"],
 }
 
 # Documentação para o endpoint de deletar comentário
@@ -172,13 +172,7 @@ DELETE_COMMENT_DOCS = {
             "content": {
                 "application/json": {
                     "example": {
-                        "detail": [
-                            {
-                                "loc": ["path", "comment_id"],
-                                "msg": "value is not a valid integer",
-                                "type": "type_error.integer",
-                            }
-                        ]
+                        "detail": "Parâmetro de rota inválido"
                     }
                 }
             },
@@ -190,7 +184,7 @@ DELETE_COMMENT_DOCS = {
             },
         },
     },
-    "tags": ["comments"],
+    "tags": ["Comentários"],
 }
 
 # Documentação para o endpoint de obter comentário específico
@@ -220,17 +214,11 @@ GET_COMMENT_DOCS = {
             "content": {
                 "application/json": {
                     "example": {
-                        "detail": [
-                            {
-                                "loc": ["path", "comment_id"],
-                                "msg": "value is not a valid integer",
-                                "type": "type_error.integer",
-                            }
-                        ]
+                        "detail": "Parâmetro de rota inválido"
                     }
                 }
             },
         },
     },
-    "tags": ["comments"],
+    "tags": ["Comentários"],
 }

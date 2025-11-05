@@ -1,12 +1,11 @@
-from typing import Union
 import logging
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from .database import Base, engine
-from .config import settings
-from .comments.router import router as comments_router
+
 from .admins.router import router as admins_router
+from .comments.router import router as comments_router
 from .openapi_config import create_custom_openapi
 
 # Configuração básica de logging
@@ -23,6 +22,20 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     Manipulador para capturar erros de validação do Pydantic (422) e
     retornar uma resposta JSON estruturada e amigável.
     """
+    # Verificar se há erros de path params
+    has_path_errors = any('path' in str(error["loc"]) for error in exc.errors())
+    
+    if has_path_errors:
+        # Retornar resposta minificada para erros de path params
+        logging.error(f"Erro de validação de path params: {exc.errors()}")
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            content={
+                "detail": "Parâmetro de rota inválido",
+            },
+        )
+    
+    # Formato detalhado para erros de body/request
     formatted_errors = []
     for error in exc.errors():
         field = ".".join(str(loc) for loc in error["loc"] if str(loc) != 'body')
