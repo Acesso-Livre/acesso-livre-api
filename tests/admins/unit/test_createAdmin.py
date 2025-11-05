@@ -1,8 +1,11 @@
-import pytest
 from unittest.mock import MagicMock
-from acesso_livre_api.src.admins import service, exceptions
-from acesso_livre_api.src.admins.schemas import AdminCreate
+
+import pytest
 from pydantic import ValidationError
+
+from acesso_livre_api.src.admins import exceptions, service
+from acesso_livre_api.src.admins.schemas import AdminCreate
+
 
 def test_create_admin_email_exists():
     # Mock da sessão do banco de dados

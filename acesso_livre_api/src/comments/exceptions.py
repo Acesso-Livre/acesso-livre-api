@@ -16,12 +16,12 @@ class CommentNotFoundException(HTTPException):
 class CommentStatusInvalidException(HTTPException):
     """Exceção levantada quando o status do comentário é inválido."""
 
-    def __init__(self, status: Optional[str] = None) -> None:
-        if status:
-            detail = f"Status '{status}' não é válido. Status válidos: 'pending', 'approved', 'rejected'"
+    def __init__(self, invalid_status: Optional[str] = None) -> None:
+        if invalid_status:
+            detail = f"Status '{invalid_status}' não é válido. Status válidos: 'pending', 'approved', 'rejected'"
         else:
             detail = "Status fornecido não é válido. Status válidos: 'pending', 'approved', 'rejected'"
-        
+
         super().__init__(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=detail,
