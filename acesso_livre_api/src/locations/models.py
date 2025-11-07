@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Table, ForeignKey, JSON
-from sqlalchemy.orm import relationship
-from ..database import Base
 import datetime
+
+from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Integer, String, Table
+from sqlalchemy.orm import relationship
+
+from ..database import Base
 
 # Tabela associativa para relacionamento many-to-many entre Location e AccessibilityItem
 location_accessibility_association = Table(
@@ -29,8 +31,8 @@ class Location(Base):
         back_populates='locations'
     )
 
-    # Relacionamento one-to-many com Comments (será importado quando o modelo Comment existir)
-    # comments = relationship('Comment', back_populates='location')
+    # Relacionamento one-to-many com Comments
+    comments = relationship('Comment', back_populates='location')
 
 class AccessibilityItem(Base):
     __tablename__ = 'accessibility_items'
