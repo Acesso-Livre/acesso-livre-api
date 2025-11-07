@@ -60,3 +60,4 @@ def read_comment(comment_id: int, db: Session = Depends(get_db)):
     if db_comment is None:
         raise CommentNotFoundException()
     return db_comment
+

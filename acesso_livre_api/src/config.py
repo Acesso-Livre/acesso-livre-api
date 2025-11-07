@@ -1,4 +1,7 @@
+import logging
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
@@ -8,5 +11,11 @@ class Settings(BaseSettings):
     algorithm: str
     access_token_expire_minutes: int
     reset_token_expire_minutes: int
-
+    mode: str = "prod" 
+    
 settings = Settings()
+
+if settings.mode == "development":
+    logging.basicConfig()
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+    print("-----SQLAlchemy debug logs ativados (modo dev)-----")

@@ -40,6 +40,8 @@ class AccessibilityItem(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     icon_url = Column(String)
+    top = Column(Float, nullable=False)
+    left = Column(Float, nullable=False)
 
     # Relacionamento many-to-many com Location
     locations = relationship(

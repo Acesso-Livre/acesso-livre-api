@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from .admins.router import router as admins_router
 from .comments.router import router as comments_router
+from .locations.router import router as locations_router
 from .openapi_config import create_custom_openapi
 
 # Configuração básica de logging
@@ -56,7 +57,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 app.openapi = create_custom_openapi(app)
 
 app.include_router(admins_router, prefix="/api/admins",tags=["Administração"])
-app.include_router(comments_router, prefix="/api/comments", tags=["comments"])
+app.include_router(comments_router, prefix="/api/comments", tags=["Comentários"])
+app.include_router(locations_router, prefix="/api/locations", tags=["Locais"])
 
 @app.get("/", tags=["Status"])
 def read_root():

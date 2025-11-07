@@ -1,7 +1,19 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, CheckConstraint
-from sqlalchemy.dialects.postgresql import JSON
-from ..database import Base
 from enum import Enum
+
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
+from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.orm import relationship
+
+from ..database import Base
+
 
 class CommentStatus(str, Enum):
     PENDING = "pending"
@@ -19,7 +31,10 @@ class Comment(Base):
     user_name = Column(String(255), index=True, nullable=False)
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=False)
-    location_id = Column(Integer, nullable=True)
-    status = Column(String(50), nullable=False, default=CommentStatus.PENDING) 
+    location_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
+    status = Column(String(50), nullable=False, default=CommentStatus.PENDING)
     images = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
+
+    # Relacionamento com Location
+    location = relationship('Location', back_populates='comments')

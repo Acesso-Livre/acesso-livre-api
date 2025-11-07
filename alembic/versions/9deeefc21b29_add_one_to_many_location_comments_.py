@@ -7,9 +7,9 @@ Create Date: 2025-11-07 14:57:41.362287
 """
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '9deeefc21b29'
@@ -20,9 +20,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    pass
+    op.create_foreign_key(
+        'fk_comments_location_id',
+        'comments', 'locations',
+        ['location_id'], ['id']
+    )
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    pass
+    op.drop_constraint('fk_comments_location_id', 'comments', type_='foreignkey')
