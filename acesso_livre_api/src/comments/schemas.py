@@ -50,3 +50,24 @@ class CommentListResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CommentResponse(BaseModel):
+    id: int
+    user_name: str
+    rating: int
+    comment: str
+    location_id: int
+    status: CommentStatus
+    images: List[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CommentListByLocationResponse(BaseModel):
+    comments: List[CommentResponse]
+
+    class Config:
+        from_attributes = True

@@ -295,7 +295,7 @@ GET_COMMENT_DOCS = {
 # Documentação para o endpoint de listar comentários por localização
 GET_COMMENTS_BY_LOCATION_DOCS = {
     "summary": "Lista comentários por ID de localização",
-    "description": "Endpoint protegido que requer autenticação de administrador. Recupera uma lista paginada de comentários associados a uma localização específica, incluindo comentários com qualquer status (pending, approved, rejected). Suporta paginação via parâmetros 'skip' e 'limit'.",
+    "description": "Endpoint protegido que requer autenticação. Recupera uma lista paginada de comentários associados a uma localização específica, incluindo comentários com qualquer status (pending, approved, rejected). Suporta paginação via parâmetros 'skip' e 'limit'. Se nenhum comentário for encontrado, retorna uma lista vazia.",
     "responses": {
         200: {
             "description": "Lista de comentários retornada com sucesso.",
@@ -335,14 +335,6 @@ GET_COMMENTS_BY_LOCATION_DOCS = {
                     "example": {
                         "detail": "Sem permissão para realizar esta operação no comentário"
                     }
-                }
-            },
-        },
-        404: {
-            "description": "Nenhum comentário encontrado para a localização",
-            "content": {
-                "application/json": {
-                    "example": {"detail": "Comentário não encontrado"}
                 }
             },
         },

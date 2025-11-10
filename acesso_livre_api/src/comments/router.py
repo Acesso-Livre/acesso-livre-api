@@ -30,7 +30,7 @@ def get_comments_with_status_pending(
     comments = [schemas.CommentResponseOnlyStatusPending.model_validate(comment) for comment in db_comments]
     return schemas.CommentListResponse(comments=comments)
 
-@router.get("/{location_id}/comments", response_model=schemas.CommentListResponse, **docs.GET_COMMENTS_BY_LOCATION_DOCS)
+@router.get("/{location_id}/comments", response_model=schemas.CommentListByLocationResponse, **docs.GET_COMMENTS_BY_LOCATION_DOCS)
 @dependencies.require_auth
 def get_all_comments_by_location_id(
     location_id: int,
@@ -41,12 +41,9 @@ def get_all_comments_by_location_id(
 
     db_comments = service.get_all_comments_by_location_id(location_id, skip, limit, db)
 
-    if not db_comments:
-        raise CommentNotFoundException()
-    
-    comments = [schemas.CommentResponseOnlyStatusPending.model_validate(comment) for comment in db_comments]
+    comments = [schemas.CommentResponse.model_validate(comment) for comment in db_comments]
 
-    return schemas.CommentListResponse(comments=comments)
+    return schemas.CommentListByLocationResponse(comments=comments)
 
 @router.patch("/{comment_id}/status", response_model=schemas.CommentResponseOnlyStatusPending, **docs.UPDATE_COMMENT_STATUS_DOCS)
 @dependencies.require_auth
@@ -57,8 +54,6 @@ def update_comment_status_with_id(
     authenticated_user: bool = dependencies.authenticated_user
 ):
     updated_comment = service.update_comment_status(db, comment_id, new_status)
-    if updated_comment is None:
-        raise CommentNotFoundException()
     return updated_comment
 
 @router.delete("/{comment_id}", **docs.DELETE_COMMENT_DOCS)
