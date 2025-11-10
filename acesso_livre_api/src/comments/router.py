@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.params import Query
 from sqlalchemy.orm import Session
 
 from acesso_livre_api.src.admins import dependencies
@@ -27,6 +28,24 @@ def get_comments_with_status_pending(
 ):
     db_comments = service.get_comments_with_status_pending(db)
     comments = [schemas.CommentResponseOnlyStatusPending.model_validate(comment) for comment in db_comments]
+    return schemas.CommentListResponse(comments=comments)
+
+@router.get("/{location_id}/comments", response_model=schemas.CommentListResponse, **docs.GET_COMMENTS_BY_LOCATION_DOCS)
+@dependencies.require_auth
+def get_all_comments_by_location_id(
+    location_id: int,
+    skip: int = Query(0, ge=0, description="Número de registros a pular"),
+    limit: int = Query(10, ge=1, le=10, description="Número máximo de registros a retornar"),
+    authenticated_user: bool = dependencies.authenticated_user,
+    db: Session = Depends(get_db)):
+
+    db_comments = service.get_all_comments_by_location_id(location_id, skip, limit, db)
+
+    if not db_comments:
+        raise CommentNotFoundException()
+    
+    comments = [schemas.CommentResponseOnlyStatusPending.model_validate(comment) for comment in db_comments]
+
     return schemas.CommentListResponse(comments=comments)
 
 @router.patch("/{comment_id}/status", response_model=schemas.CommentResponseOnlyStatusPending, **docs.UPDATE_COMMENT_STATUS_DOCS)

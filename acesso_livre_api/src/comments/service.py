@@ -154,3 +154,20 @@ def delete_comment(db: Session, comment_id: int, user_permissions: bool = True):
         logger.error(f"Erro inesperado ao excluir comentário {comment_id}: {str(e)}")
         db.rollback()
         raise CommentDeleteException()
+
+def get_all_comments_by_location_id(location_id: int, skip: int, limit: int, db: Session):
+    try:
+        comments = db.query(models.Comment).filter(models.Comment.location_id == location_id).offset(skip).limit(limit).all()
+
+        if not comments:
+            return []
+        
+        for comment in comments:
+            if comment.images is None:
+                comment.images = []
+        
+        return comments
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar comentários para o local {location_id}: {str(e)}")
+        raise CommentGenericException()

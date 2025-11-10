@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field
-from enum import Enum
 from datetime import datetime
+from enum import Enum
 from typing import List, Optional
+
+from pydantic import BaseModel, Field
+
 
 class CommentStatus(str, Enum):
     PENDING = "pending"
@@ -12,6 +14,7 @@ class CommentCreate(BaseModel):
     user_name: str = Field(..., max_length=30)
     rating: int = Field(..., ge=1, le=5)
     comment: str = Field(..., max_length=500)
+    location_id: int
     images: Optional[List[str]] = None
 
 class CommentCreateResponse(BaseModel):
@@ -34,7 +37,7 @@ class CommentResponseOnlyStatusPending(BaseModel):
     user_name: str
     rating: int
     comment: str
-    location_id: Optional[int] = None
+    location_id: int
     status: CommentStatus
     images: List[str]
     created_at: datetime

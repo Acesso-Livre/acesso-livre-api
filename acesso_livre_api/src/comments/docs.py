@@ -34,6 +34,19 @@ CREATE_COMMENT_DOCS = {
                                 "detail": "Problema com imagens: Uma ou mais imagens têm formato inválido"
                             },
                         },
+                        "location_id_missing": {
+                            "summary": "ID da localização obrigatório",
+                            "value": {
+                                "detail": [
+                                    {
+                                        "type": "missing",
+                                        "loc": ["body", "location_id"],
+                                        "msg": "Field required",
+                                        "input": {"user_name": "João", "rating": 5, "comment": "Bom lugar"}
+                                    }
+                                ]
+                            },
+                        },
                     }
                 }
             },
@@ -60,6 +73,34 @@ GET_PENDING_COMMENTS_DOCS = {
     "responses": {
         200: {
             "description": "Lista de comentários pendentes retornada com sucesso.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "comments": [
+                            {
+                                "id": 1,
+                                "user_name": "João Silva",
+                                "rating": 5,
+                                "comment": "Excelente local, muito acessível!",
+                                "location_id": 123,
+                                "status": "pending",
+                                "images": ["https://example.com/image1.jpg"],
+                                "created_at": "2023-10-01T12:00:00Z"
+                            },
+                            {
+                                "id": 2,
+                                "user_name": "Maria Santos",
+                                "rating": 4,
+                                "comment": "Bom local, mas poderia melhorar a sinalização.",
+                                "location_id": 456,
+                                "status": "pending",
+                                "images": [],
+                                "created_at": "2023-10-02T14:30:00Z"
+                            }
+                        ]
+                    }
+                }
+            },
         },
         403: {
             "description": "Acesso negado",
@@ -92,6 +133,20 @@ UPDATE_COMMENT_STATUS_DOCS = {
     "responses": {
         200: {
             "description": "Status do comentário atualizado com sucesso.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 1,
+                        "user_name": "João Silva",
+                        "rating": 5,
+                        "comment": "Excelente local, muito acessível!",
+                        "location_id": 123,
+                        "status": "approved",
+                        "images": ["https://example.com/image1.jpg"],
+                        "created_at": "2023-10-01T12:00:00Z"
+                    }
+                }
+            },
         },
         403: {
             "description": "Acesso negado",
@@ -117,7 +172,7 @@ UPDATE_COMMENT_STATUS_DOCS = {
                         "invalid_status": {
                             "summary": "Status inválido",
                             "value": {
-                                "detail": "Status 'published' não é válido. Status válidos:  'approved', 'rejected'"
+                                "detail": "Status 'published' não é válido. Status válidos: 'pending', 'approved', 'rejected'"
                             },
                         },
                         "not_pending": {
@@ -193,7 +248,21 @@ GET_COMMENT_DOCS = {
     "description": "Recupera os detalhes de um comentário específico a partir do seu ID.",
     "responses": {
         200: {
-            "description": "Detalhes do comentário.",
+            "description": "Detalhes do comentário retornados com sucesso.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 1,
+                        "user_name": "João Silva",
+                        "rating": 5,
+                        "comment": "Excelente local, muito acessível!",
+                        "location_id": 123,
+                        "status": "approved",
+                        "images": ["https://example.com/image1.jpg"],
+                        "created_at": "2023-10-01T12:00:00Z"
+                    }
+                }
+            },
         },
         404: {
             "description": "Comentário não encontrado",
@@ -215,6 +284,84 @@ GET_COMMENT_DOCS = {
                 "application/json": {
                     "example": {
                         "detail": "Parâmetro de rota inválido"
+                    }
+                }
+            },
+        },
+    },
+    "tags": ["Comentários"],
+}
+
+# Documentação para o endpoint de listar comentários por localização
+GET_COMMENTS_BY_LOCATION_DOCS = {
+    "summary": "Lista comentários por ID de localização",
+    "description": "Endpoint protegido que requer autenticação de administrador. Recupera uma lista paginada de comentários associados a uma localização específica, incluindo comentários com qualquer status (pending, approved, rejected). Suporta paginação via parâmetros 'skip' e 'limit'.",
+    "responses": {
+        200: {
+            "description": "Lista de comentários retornada com sucesso.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "comments": [
+                            {
+                                "id": 1,
+                                "user_name": "João Silva",
+                                "rating": 5,
+                                "comment": "Excelente local, muito acessível!",
+                                "location_id": 123,
+                                "status": "approved",
+                                "images": ["https://example.com/image1.jpg"],
+                                "created_at": "2023-10-01T12:00:00Z"
+                            },
+                            {
+                                "id": 2,
+                                "user_name": "Maria Santos",
+                                "rating": 4,
+                                "comment": "Bom local, mas poderia melhorar a sinalização.",
+                                "location_id": 123,
+                                "status": "pending",
+                                "images": [],
+                                "created_at": "2023-10-02T14:30:00Z"
+                            }
+                        ]
+                    }
+                }
+            },
+        },
+        403: {
+            "description": "Acesso negado",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Sem permissão para realizar esta operação no comentário"
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Nenhum comentário encontrado para a localização",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Comentário não encontrado"}
+                }
+            },
+        },
+        422: {
+            "description": "Erro de validação",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Parâmetro de rota inválido"
+                    }
+                }
+            },
+        },
+        500: {
+            "description": "Erro interno do servidor",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Ocorreu um erro interno no processamento dos comentários."
                     }
                 }
             },

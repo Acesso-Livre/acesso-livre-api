@@ -18,7 +18,7 @@ def test_create_comment_success():
     mock_query.filter.return_value = mock_filter
     db_mock.query.return_value = mock_query
 
-    commentToUp = CommentCreate(user_name="Maria Silva",rating= 4,comment= "mocked comment")
+    commentToUp = CommentCreate(user_name="Maria Silva", rating=4, comment="mocked comment", location_id=123)
     comment = service.create_comment(db_mock, commentToUp)
 
     assert comment is not None
@@ -34,7 +34,7 @@ def test_create_comment_with_invalid_rating():
 def test_create_comment_with_invalid_images():
     db_mock = MagicMock()
     with pytest.raises(exceptions.CommentImagesInvalidException):
-        comment = CommentCreate(user_name="João Souza", rating=4, comment="Lugar agradável.", images=[""])
+        comment = CommentCreate(user_name="João Souza", rating=4, comment="Lugar agradável.", images=[""], location_id=123)
         service.create_comment(db_mock, comment)
 
 
@@ -42,8 +42,8 @@ def test_create_comment_internal_error():
     db_mock = MagicMock()
     db_mock.commit.side_effect = Exception("Database error")
 
-    commentToUp = CommentCreate(user_name="Ana Pereira",rating= 5,comment= "mocked comment")
-    
+    commentToUp = CommentCreate(user_name="Ana Pereira", rating=5, comment="mocked comment", location_id=123)
+
     with pytest.raises(exceptions.CommentCreateException):
         service.create_comment(db_mock, commentToUp)
 

@@ -64,7 +64,7 @@ app.include_router(locations_router, prefix="/api/locations", tags=["Locais"])
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ou adicionar os domínios que você deseja permitir
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
