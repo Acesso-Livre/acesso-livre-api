@@ -1,24 +1,31 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from fastapi.params import Query
 from sqlalchemy.orm import Session
 
 from acesso_livre_api.src.admins import dependencies
-
-from ..database import get_db
-from . import docs, schemas, service
-from .exceptions import (
+from acesso_livre_api.src.comments import docs, schemas, service
+from acesso_livre_api.src.comments.exceptions import (
     CommentCreateException,
     CommentNotFoundException,
 )
+from acesso_livre_api.src.database import get_db
+from acesso_livre_api.src.locations.exceptions import LocationNotFoundException
 
 router = APIRouter()
 
-@router.post("/", response_model=schemas.CommentCreateResponse, **docs.CREATE_COMMENT_DOCS)
+@router.post(
+    "/",
+    response_model=schemas.CommentCreateResponse,
+    **docs.CREATE_COMMENT_DOCS,
+)
 def create_comment(comment: schemas.CommentCreate, db: Session = Depends(get_db)):
-    comment = service.create_comment(db=db, comment=comment)
-    if not comment:
-        raise CommentCreateException("Error creating comment")
-    return comment
+    try:
+        new_comment = service.create_comment(db=db, comment=comment)
+    except LocationNotFoundException:
+        raise
+    except Exception as e:
+        raise CommentCreateException(str(e))
+    return new_comment
 
 @router.get("/pending", response_model=schemas.CommentListResponse, **docs.GET_PENDING_COMMENTS_DOCS)
 @dependencies.require_auth
@@ -74,4 +81,3 @@ def read_comment(comment_id: int, db: Session = Depends(get_db)):
     if db_comment is None:
         raise CommentNotFoundException()
     return db_comment
-

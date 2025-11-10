@@ -4,7 +4,9 @@ from datetime import UTC, datetime
 from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.orm import Session
 
-from . import models, schemas
+from acesso_livre_api.src.comments import models, schemas
+
+from ..locations.service import get_location_by_id
 from .exceptions import (
     CommentCreateException,
     CommentDeleteException,
@@ -46,31 +48,29 @@ def create_comment(db: Session, comment: schemas.CommentCreate):
     try:
         if comment.rating < 1 or comment.rating > 5:
             raise CommentRatingInvalidException(comment.rating)
-        
+
+        get_location_by_id(db, comment.location_id)
+
         data = comment.model_dump()
         if not data["images"]:
             data["images"] = []
-        
+
         if data["images"]:
             for img in data["images"]:
                 if not isinstance(img, str) or not img.strip():
                     raise CommentImagesInvalidException("Uma ou mais imagens têm formato inválido")
-        
+
         db_comment = models.Comment(**data, created_at=datetime.now(UTC))
         db.add(db_comment)
         db.commit()
         db.refresh(db_comment)
-        
+
         return db_comment
 
     except (CommentRatingInvalidException, CommentImagesInvalidException):
         raise
-    except sqlalchemy_exc.SQLAlchemyError as e:
-        logger.error(f"Erro de banco de dados ao criar comentário: {str(e)}")
-        db.rollback()
-        raise CommentCreateException()
     except Exception as e:
-        logger.error(f"Erro inesperado ao criar comentário: {str(e)}")
+        logger.error(f"Erro ao criar comentário: {str(e)}")
         db.rollback()
         raise CommentCreateException()
 
@@ -97,24 +97,29 @@ def update_comment_status(
     db: Session, comment_id: int, new_status: schemas.CommentUpdateStatus
 ):
     try:
+        logger.info(f"Tentando atualizar comentário {comment_id} para status {new_status.status.value}")
+
         if new_status.status.value not in ["approved", "rejected"]:
             raise CommentStatusInvalidException(new_status.status.value)
-        
+
         comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
-        
+        logger.info(f"Comentário encontrado: {comment is not None}")
+
         if not comment:
             raise CommentNotFoundException()
-        
+
+        logger.info(f"Status atual do comentário: {comment.status.value}")
         if comment.status.value != "pending":
             raise CommentNotPendingException(comment_id, comment.status.value)
-        
+
         comment.status = new_status.status
         db.commit()
         db.refresh(comment)
-        
+
         if comment.images is None:
             comment.images = []
-        
+
+        logger.info(f"Comentário {comment_id} atualizado com sucesso para status {new_status.status.value}")
         return comment
 
     except (CommentNotFoundException, CommentStatusInvalidException, CommentNotPendingException):
