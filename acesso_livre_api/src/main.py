@@ -2,6 +2,7 @@ import logging
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .admins.router import router as admins_router
@@ -59,6 +60,15 @@ app.openapi = create_custom_openapi(app)
 app.include_router(admins_router, prefix="/api/admins",tags=["Administração"])
 app.include_router(comments_router, prefix="/api/comments", tags=["Comentários"])
 app.include_router(locations_router, prefix="/api/locations", tags=["Locais"])
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # ou adicionar os domínios que você deseja permitir
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/", tags=["Status"])
 def read_root():
