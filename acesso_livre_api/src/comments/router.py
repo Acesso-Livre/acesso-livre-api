@@ -19,7 +19,10 @@ router = APIRouter()
     response_model=schemas.CommentCreateResponse,
     **docs.CREATE_COMMENT_DOCS,
 )
-def create_comment(comment: schemas.CommentCreate, db: Session = Depends(get_db)):
+def create_comment(
+    comment: schemas.CommentCreate,
+    db: Session = Depends(get_db),
+):
     try:
         new_comment = service.create_comment(db=db, comment=comment)
     except LocationNotFoundException:
@@ -56,14 +59,12 @@ def get_comments_with_status_pending(
     response_model=schemas.CommentListByLocationResponse,
     **docs.GET_COMMENTS_BY_LOCATION_DOCS,
 )
-@dependencies.require_auth
 def get_all_comments_by_location_id(
     location_id: int,
     skip: int = Query(0, ge=0, description="Número de registros a pular"),
     limit: int = Query(
         10, ge=1, le=10, description="Número máximo de registros a retornar"
     ),
-    authenticated_user: bool = dependencies.authenticated_user,
     db: Session = Depends(get_db),
 ):
 
@@ -99,9 +100,7 @@ def delete_comment_with_id(
     db: Session = Depends(get_db),
     authenticated_user: bool = dependencies.authenticated_user,
 ):
-    success = service.delete_comment(
-        db, comment_id, user_permissions=authenticated_user
-    )
+    success = service.delete_comment(db, comment_id, user_permissions=authenticated_user)
     if not success:
         raise CommentNotFoundException()
     return {"detail": "Comment deleted successfully"}

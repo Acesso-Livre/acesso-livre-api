@@ -26,7 +26,9 @@ logger = logging.getLogger(__name__)
 def get_comment(db: Session, comment_id: int):
     try:
         comment = (
-            db.query(models.Comment).filter(models.Comment.id == comment_id).first()
+            db.query(models.Comment)
+            .filter(models.Comment.id == comment_id, models.Comment.status != "pending")
+            .first()
         )
 
         if not comment:
@@ -113,9 +115,7 @@ def update_comment_status(
         if new_status.status.value not in ["approved", "rejected"]:
             raise CommentStatusInvalidException(new_status.status.value)
 
-        comment = (
-            db.query(models.Comment).filter(models.Comment.id == comment_id).first()
-        )
+        comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
         logger.info(f"Comentário encontrado: {comment is not None}")
 
         if not comment:
@@ -160,9 +160,7 @@ def delete_comment(db: Session, comment_id: int, user_permissions: bool = True):
         if not user_permissions:
             raise CommentPermissionDeniedException("excluir")
 
-        comment = (
-            db.query(models.Comment).filter(models.Comment.id == comment_id).first()
-        )
+        comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
 
         if not comment:
             raise CommentNotFoundException()
@@ -186,13 +184,14 @@ def delete_comment(db: Session, comment_id: int, user_permissions: bool = True):
         raise CommentDeleteException()
 
 
-def get_all_comments_by_location_id(
-    location_id: int, skip: int, limit: int, db: Session
-):
+def get_all_comments_by_location_id(location_id: int, skip: int, limit: int, db: Session):
     try:
         comments = (
             db.query(models.Comment)
-            .filter(models.Comment.location_id == location_id)
+            .filter(
+                models.Comment.location_id == location_id,
+                models.Comment.status != "pending",
+            )
             .order_by(models.Comment.created_at.desc())
             .offset(skip)
             .limit(limit)

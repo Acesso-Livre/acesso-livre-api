@@ -30,9 +30,7 @@ def create_accessibility_item(
     return db_item
 
 
-@router.get(
-    "/accessibility-items/", response_model=schemas.AccessibilityItemResponseList
-)
+@router.get("/accessibility-items/", response_model=schemas.AccessibilityItemResponseList)
 def get_accessibility_items(db: Session = Depends(get_db)):
     items = service.get_all_accessibility_items(db=db)
     return items
@@ -61,9 +59,7 @@ def list_all_locations(
 
 
 @router.get("/{location_id}", response_model=schemas.LocationDetailResponse)
-def get_location_by_id(
-    location_id: int = Path(..., gt=0), db: Session = Depends(get_db)
-):
+def get_location_by_id(location_id: int = Path(..., gt=0), db: Session = Depends(get_db)):
     location = service.get_location_by_id(db=db, location_id=location_id)
     return location
 
