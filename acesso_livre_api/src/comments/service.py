@@ -108,12 +108,15 @@ def update_comment_status(
     db: Session, comment_id: int, new_status: schemas.CommentUpdateStatus
 ):
     try:
+        # Convert status to string if it's an enum
+        status_value = new_status.status.value if hasattr(new_status.status, 'value') else new_status.status
+        
         logger.info(
-            f"Tentando atualizar comentário {comment_id} para status {new_status.status.value}"
+            f"Tentando atualizar comentário {comment_id} para status {status_value}"
         )
 
-        if new_status.status.value not in ["approved", "rejected"]:
-            raise CommentStatusInvalidException(new_status.status.value)
+        if status_value not in ["approved", "rejected"]:
+            raise CommentStatusInvalidException(status_value)
 
         comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
         logger.info(f"Comentário encontrado: {comment is not None}")
@@ -121,9 +124,11 @@ def update_comment_status(
         if not comment:
             raise CommentNotFoundException()
 
-        logger.info(f"Status atual do comentário: {comment.status.value}")
-        if comment.status.value != "pending":
-            raise CommentNotPendingException(comment_id, comment.status.value)
+        # Convert comment status to string for comparison
+        current_status = comment.status.value if hasattr(comment.status, 'value') else comment.status
+        logger.info(f"Status atual do comentário: {current_status}")
+        if current_status != "pending":
+            raise CommentNotPendingException(comment_id, current_status)
 
         comment.status = new_status.status
         db.commit()

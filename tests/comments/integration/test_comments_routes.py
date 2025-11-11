@@ -52,7 +52,11 @@ async def test_get_all_comments_by_location_id_success(client: AsyncClient, crea
         "location_id": created_location["id"],
         "images": []
     }
-    await client.post("/api/comments/", json=comment_data)
+    create_response = await client.post("/api/comments/", json=comment_data)
+    comment_id = create_response.json()["id"]
+    
+    # Approve the comment so it appears in the public endpoint
+    await client.patch(f"/api/comments/{comment_id}/status", json={"status": "approved"}, headers=admin_auth_header)
 
     response = await client.get(f"/api/comments/{created_location['id']}/comments", headers=admin_auth_header)
     
@@ -78,7 +82,9 @@ async def test_get_all_comments_by_location_id_no_comments(client: AsyncClient, 
 @pytest.mark.integration
 async def test_get_all_comments_by_location_id_no_auth(client: AsyncClient, created_location):
     response = await client.get(f"/api/comments/{created_location['id']}/comments")
-    assert response.status_code == 401
+    assert response.status_code == 200
+    data = response.json()
+    assert "comments" in data
 
 @pytest.mark.asyncio
 @pytest.mark.integration
@@ -128,7 +134,7 @@ async def test_update_comment_status_to_approved_success(client: AsyncClient, cr
     update_data = {"status": "approved"}
     response = await client.patch(f"/api/comments/{comment_id}/status", json=update_data, headers=admin_auth_header)
 
-    assert response.status_code == 500
+    assert response.status_code == 200
 
 @pytest.mark.asyncio
 @pytest.mark.integration
@@ -141,7 +147,7 @@ async def test_update_comment_status_not_pending(client: AsyncClient, created_lo
     update_data = {"status": "rejected"}
     response = await client.patch(f"/api/comments/{comment_id}/status", json=update_data, headers=admin_auth_header)
 
-    assert response.status_code == 500
+    assert response.status_code == 422
 
 @pytest.mark.asyncio
 @pytest.mark.integration
@@ -202,12 +208,15 @@ async def test_delete_comment_no_auth(client: AsyncClient, created_location):
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_read_comment_success(client: AsyncClient, created_location):
+async def test_read_comment_success(client: AsyncClient, created_location, admin_auth_header):
     comment_data = {
         "user_name": "Reader", "rating": 5, "comment": "Read me.", "location_id": created_location["id"]
     }
     create_response = await client.post("/api/comments/", json=comment_data)
     comment_id = create_response.json()["id"]
+    
+    # Approve the comment so it can be read from the public endpoint
+    await client.patch(f"/api/comments/{comment_id}/status", json={"status": "approved"}, headers=admin_auth_header)
 
     response = await client.get(f"/api/comments/{comment_id}")
     
