@@ -8,7 +8,7 @@ from acesso_livre_api.src.comments import exceptions, service
 def test_get_comment_with_status_pending_success():
     db_mock = MagicMock()
 
-    db_mock.query().filter().all.return_value = [
+    db_mock.query().filter().order_by().offset().limit().all.return_value = [
         MagicMock(
             id=1,
             user_name="test_user",
@@ -17,7 +17,7 @@ def test_get_comment_with_status_pending_success():
             location_id=123,
             status="pending",
             images=["image1.jpg", "image2.jpg"],
-            created_at="2024-01-01T12:00:00Z"
+            created_at="2024-01-01T12:00:00Z",
         ),
         MagicMock(
             id=2,
@@ -27,8 +27,8 @@ def test_get_comment_with_status_pending_success():
             location_id=456,
             status="pending",
             images=[],
-            created_at="2024-01-02T15:30:00Z"
-        )
+            created_at="2024-01-02T15:30:00Z",
+        ),
     ]
 
     comments = service.get_comments_with_status_pending(db_mock)
@@ -49,7 +49,7 @@ def test_get_comment_with_id():
         rating=5,
         comment="Great place!",
         images=["image1.jpg", "image2.jpg"],
-        created_at="2024-01-01T12:00:00Z"
+        created_at="2024-01-01T12:00:00Z",
     )
     db_mock.query().filter().first.return_value = expected_comment
 
@@ -90,14 +90,16 @@ def test_get_comment_images_none():
         rating=5,
         comment="Great place!",
         images=None,
-        created_at="2024-01-01T12:00:00Z"
+        created_at="2024-01-01T12:00:00Z",
     )
     db_mock.query().filter().first.return_value = expected_comment
 
     comment = service.get_comment(db_mock, comment_id)
 
     assert comment.id == expected_comment.id
-    assert comment.images == []  # Verifica se as imagens foram definidas como lista vazia
+    assert (
+        comment.images == []
+    )  # Verifica se as imagens foram definidas como lista vazia
     assert comment.user_name == expected_comment.user_name
     assert comment.rating == expected_comment.rating
     assert comment.comment == expected_comment.comment
@@ -110,7 +112,7 @@ def test_get_all_comments_by_location_id_success():
     skip = 0
     limit = 10
 
-    db_mock.query().filter().offset().limit().all.return_value = [
+    db_mock.query().filter().order_by().offset().limit().all.return_value = [
         MagicMock(
             id=1,
             user_name="João Silva",
@@ -119,7 +121,7 @@ def test_get_all_comments_by_location_id_success():
             location_id=location_id,
             status="approved",
             images=["https://example.com/image1.jpg"],
-            created_at="2023-10-01T12:00:00Z"
+            created_at="2023-10-01T12:00:00Z",
         ),
         MagicMock(
             id=2,
@@ -129,11 +131,13 @@ def test_get_all_comments_by_location_id_success():
             location_id=location_id,
             status="pending",
             images=[],
-            created_at="2023-10-02T14:30:00Z"
-        )
+            created_at="2023-10-02T14:30:00Z",
+        ),
     ]
 
-    comments = service.get_all_comments_by_location_id(location_id, skip, limit, db_mock)
+    comments = service.get_all_comments_by_location_id(
+        location_id, skip, limit, db_mock
+    )
 
     assert len(comments) == 2
     assert comments[0].id == 1
@@ -161,9 +165,11 @@ def test_get_all_comments_by_location_id_empty_list():
     skip = 0
     limit = 10
 
-    db_mock.query().filter().offset().limit().all.return_value = []
+    db_mock.query().filter().order_by().offset().limit().all.return_value = []
 
-    comments = service.get_all_comments_by_location_id(location_id, skip, limit, db_mock)
+    comments = service.get_all_comments_by_location_id(
+        location_id, skip, limit, db_mock
+    )
 
     assert comments == []
 
@@ -174,7 +180,7 @@ def test_get_all_comments_by_location_id_with_pagination():
     skip = 5
     limit = 3
 
-    db_mock.query().filter().offset().limit().all.return_value = [
+    db_mock.query().filter().order_by().offset().limit().all.return_value = [
         MagicMock(
             id=6,
             user_name="User 6",
@@ -183,11 +189,13 @@ def test_get_all_comments_by_location_id_with_pagination():
             location_id=location_id,
             status="approved",
             images=[],
-            created_at="2023-10-06T12:00:00Z"
+            created_at="2023-10-06T12:00:00Z",
         )
     ]
 
-    comments = service.get_all_comments_by_location_id(location_id, skip, limit, db_mock)
+    comments = service.get_all_comments_by_location_id(
+        location_id, skip, limit, db_mock
+    )
 
     assert len(comments) == 1
     assert comments[0].id == 6
@@ -199,7 +207,9 @@ def test_get_all_comments_by_location_id_generic_exception():
     skip = 0
     limit = 10
 
-    db_mock.query().filter().offset().limit().all.side_effect = Exception("Database error")
+    db_mock.query().filter().order_by().offset().limit().all.side_effect = Exception(
+        "Database error"
+    )
 
     with pytest.raises(exceptions.CommentGenericException):
         service.get_all_comments_by_location_id(location_id, skip, limit, db_mock)
@@ -219,12 +229,18 @@ def test_get_all_comments_by_location_id_images_none():
         location_id=location_id,
         status="approved",
         images=None,
-        created_at="2023-10-01T12:00:00Z"
+        created_at="2023-10-01T12:00:00Z",
     )
 
-    db_mock.query().filter().offset().limit().all.return_value = [comment_mock]
+    db_mock.query().filter().order_by().offset().limit().all.return_value = [
+        comment_mock
+    ]
 
-    comments = service.get_all_comments_by_location_id(location_id, skip, limit, db_mock)
+    comments = service.get_all_comments_by_location_id(
+        location_id, skip, limit, db_mock
+    )
 
     assert len(comments) == 1
-    assert comments[0].images == []  # Verifica se as imagens foram definidas como lista vazia
+    assert (
+        comments[0].images == []
+    )  # Verifica se as imagens foram definidas como lista vazia

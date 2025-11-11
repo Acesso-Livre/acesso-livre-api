@@ -40,7 +40,7 @@ def sample_comment_data():
         rating=5,
         comment="Test comment",
         location_id=1,
-        images=[]
+        images=[],
     )
 
 
@@ -53,9 +53,13 @@ class TestCreateComment:
         mock_comment.id = 1
         mock_comment.status = "pending"
 
-        with patch('acesso_livre_api.src.comments.service.get_location_by_id'), \
-             patch('acesso_livre_api.src.comments.service.models.Comment') as mock_comment_class, \
-             patch('acesso_livre_api.src.comments.service.datetime') as mock_datetime:
+        with (
+            patch("acesso_livre_api.src.comments.service.get_location_by_id"),
+            patch(
+                "acesso_livre_api.src.comments.service.models.Comment"
+            ) as mock_comment_class,
+            patch("acesso_livre_api.src.comments.service.datetime") as mock_datetime,
+        ):
 
             mock_comment_class.return_value = mock_comment
             mock_db.add.return_value = None
@@ -87,9 +91,11 @@ class TestCreateComment:
 
     def test_create_comment_db_error(self, mock_db, sample_comment_data):
         """Testa erro de banco de dados."""
-        with patch('acesso_livre_api.src.comments.service.get_location_by_id'), \
-             patch('acesso_livre_api.src.comments.service.models.Comment'), \
-             patch('acesso_livre_api.src.comments.service.datetime'):
+        with (
+            patch("acesso_livre_api.src.comments.service.get_location_by_id"),
+            patch("acesso_livre_api.src.comments.service.models.Comment"),
+            patch("acesso_livre_api.src.comments.service.datetime"),
+        ):
 
             mock_db.commit.side_effect = SQLAlchemyError("DB Error")
 
@@ -136,7 +142,9 @@ class TestGetCommentsWithStatusPending:
         mock_comments[0].images = None
         mock_comments[1].images = ["image.jpg"]
 
-        mock_db.query.return_value.filter.return_value.all.return_value = mock_comments
+        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = (
+            mock_comments
+        )
 
         result = get_comments_with_status_pending(mock_db)
 
@@ -146,7 +154,9 @@ class TestGetCommentsWithStatusPending:
 
     def test_get_comments_pending_empty(self, mock_db):
         """Testa lista vazia de comentários pendentes."""
-        mock_db.query.return_value.filter.return_value.all.return_value = []
+        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = (
+            []
+        )
 
         result = get_comments_with_status_pending(mock_db)
 
@@ -154,7 +164,9 @@ class TestGetCommentsWithStatusPending:
 
     def test_get_comments_pending_error(self, mock_db):
         """Testa erro ao buscar comentários pendentes."""
-        mock_db.query.return_value.filter.return_value.all.side_effect = Exception("DB Error")
+        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.side_effect = Exception(
+            "DB Error"
+        )
 
         with pytest.raises(CommentGenericException):
             get_comments_with_status_pending(mock_db)
@@ -270,7 +282,9 @@ class TestGetAllCommentsByLocationId:
         mock_comments[0].images = None
         mock_comments[1].images = ["image.jpg"]
 
-        mock_db.query.return_value.filter.return_value.offset.return_value.limit.return_value.all.return_value = mock_comments
+        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = (
+            mock_comments
+        )
 
         result = get_all_comments_by_location_id(1, 0, 10, mock_db)
 
@@ -280,7 +294,9 @@ class TestGetAllCommentsByLocationId:
 
     def test_get_comments_by_location_empty(self, mock_db):
         """Testa lista vazia."""
-        mock_db.query.return_value.filter.return_value.offset.return_value.limit.return_value.all.return_value = []
+        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = (
+            []
+        )
 
         result = get_all_comments_by_location_id(1, 0, 10, mock_db)
 
@@ -288,7 +304,9 @@ class TestGetAllCommentsByLocationId:
 
     def test_get_comments_by_location_error(self, mock_db):
         """Testa erro genérico."""
-        mock_db.query.return_value.filter.return_value.offset.return_value.limit.side_effect = Exception("DB Error")
+        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.side_effect = Exception(
+            "DB Error"
+        )
 
         with pytest.raises(CommentGenericException):
             get_all_comments_by_location_id(1, 0, 10, mock_db)
