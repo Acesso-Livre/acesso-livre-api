@@ -1,1 +1,0 @@
-# Este arquivo deve conter as dependências relacionadas aos comentários, como verificações de permissão ou busca por ID.

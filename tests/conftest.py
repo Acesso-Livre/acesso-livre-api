@@ -71,14 +71,18 @@ def created_accessibility_item(db_session):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def created_location(client: AsyncClient, created_accessibility_item):
+async def created_location(
+    client: AsyncClient, created_accessibility_item, admin_auth_header
+):
     """Cria um local com itens de acessibilidade para testes."""
     location_data = {
         "name": "Local de Teste",
         "description": "Descrição do local",
         "accessibility_item_ids": [created_accessibility_item.id],
     }
-    response = await client.post("/api/locations/", json=location_data)
+    response = await client.post(
+        "/api/locations/", json=location_data, headers=admin_auth_header
+    )
     return response.json()
 
 
