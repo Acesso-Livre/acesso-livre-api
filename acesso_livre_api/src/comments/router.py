@@ -7,8 +7,13 @@ from acesso_livre_api.src.comments import docs, schemas, service
 from acesso_livre_api.src.comments.exceptions import (
     CommentCreateException,
     CommentNotFoundException,
+    CommentNotPendingException,
+    CommentRatingInvalidException,
+    CommentStatusInvalidException,
+    CommentUpdateException,
 )
 from acesso_livre_api.src.database import get_db
+from acesso_livre_api.src.locations import service as location_service
 from acesso_livre_api.src.locations.exceptions import LocationNotFoundException
 
 router = APIRouter()
@@ -19,14 +24,18 @@ router = APIRouter()
     response_model=schemas.CommentCreateResponse,
     **docs.CREATE_COMMENT_DOCS,
 )
-def create_comment(comment: schemas.CommentCreate, db: Session = Depends(get_db)):
+def create_comment(
+    comment: schemas.CommentCreate,
+    db: Session = Depends(get_db),
+):
     try:
+        location_service.get_location_by_id(db=db, location_id=comment.location_id)
         new_comment = service.create_comment(db=db, comment=comment)
-    except LocationNotFoundException:
+        return new_comment
+    except (LocationNotFoundException, CommentRatingInvalidException):
         raise
     except Exception as e:
-        raise CommentCreateException(str(e))
-    return new_comment
+        raise CommentCreateException(reason=str(e))
 
 
 @router.get(
@@ -56,14 +65,12 @@ def get_comments_with_status_pending(
     response_model=schemas.CommentListByLocationResponse,
     **docs.GET_COMMENTS_BY_LOCATION_DOCS,
 )
-@dependencies.require_auth
 def get_all_comments_by_location_id(
     location_id: int,
     skip: int = Query(0, ge=0, description="Número de registros a pular"),
     limit: int = Query(
         10, ge=1, le=10, description="Número máximo de registros a retornar"
     ),
-    authenticated_user: bool = dependencies.authenticated_user,
     db: Session = Depends(get_db),
 ):
 
@@ -88,8 +95,17 @@ def update_comment_status_with_id(
     db: Session = Depends(get_db),
     authenticated_user: bool = dependencies.authenticated_user,
 ):
-    updated_comment = service.update_comment_status(db, comment_id, new_status)
-    return updated_comment
+    try:
+        updated_comment = service.update_comment_status(db, comment_id, new_status)
+        return updated_comment
+    except (
+        CommentNotFoundException,
+        CommentNotPendingException,
+        CommentStatusInvalidException,
+    ):
+        raise
+    except Exception:
+        raise CommentUpdateException(comment_id=comment_id)
 
 
 @router.delete("/{comment_id}", **docs.DELETE_COMMENT_DOCS)
@@ -99,9 +115,7 @@ def delete_comment_with_id(
     db: Session = Depends(get_db),
     authenticated_user: bool = dependencies.authenticated_user,
 ):
-    success = service.delete_comment(
-        db, comment_id, user_permissions=authenticated_user
-    )
+    success = service.delete_comment(db, comment_id, user_permissions=authenticated_user)
     if not success:
         raise CommentNotFoundException()
     return {"detail": "Comment deleted successfully"}
@@ -113,7 +127,8 @@ def delete_comment_with_id(
     **docs.GET_COMMENT_DOCS,
 )
 def read_comment(comment_id: int, db: Session = Depends(get_db)):
-    db_comment = service.get_comment(db, comment_id)
-    if db_comment is None:
-        raise CommentNotFoundException()
-    return db_comment
+    try:
+        db_comment = service.get_comment(db, comment_id)
+        return db_comment
+    except CommentNotFoundException:
+        raise

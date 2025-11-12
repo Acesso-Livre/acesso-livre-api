@@ -7,8 +7,9 @@ from pydantic import BaseModel, Field
 
 class CommentStatus(str, Enum):
     PENDING = "pending"
-    APPROVED = "approved" 
+    APPROVED = "approved"
     REJECTED = "rejected"
+
 
 class CommentCreate(BaseModel):
     user_name: str = Field(..., max_length=30)
@@ -17,12 +18,15 @@ class CommentCreate(BaseModel):
     location_id: int
     images: Optional[List[str]] = None
 
+
 class CommentCreateResponse(BaseModel):
     id: int
     status: CommentStatus
 
+
 class CommentUpdateStatus(BaseModel):
     status: CommentStatus
+
 
 class CommentResponseWithLocationId(BaseModel):
     id: int
@@ -31,6 +35,8 @@ class CommentResponseWithLocationId(BaseModel):
     comment: str
     images: List[str]
     created_at: datetime
+    location_id: int
+
 
 class CommentResponseOnlyStatusPending(BaseModel):
     id: int
@@ -44,6 +50,7 @@ class CommentResponseOnlyStatusPending(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class CommentListResponse(BaseModel):
     comments: List[CommentResponseOnlyStatusPending]

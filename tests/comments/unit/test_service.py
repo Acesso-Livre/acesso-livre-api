@@ -54,7 +54,6 @@ class TestCreateComment:
         mock_comment.status = "pending"
 
         with (
-            patch("acesso_livre_api.src.comments.service.get_location_by_id"),
             patch(
                 "acesso_livre_api.src.comments.service.models.Comment"
             ) as mock_comment_class,
@@ -92,7 +91,6 @@ class TestCreateComment:
     def test_create_comment_db_error(self, mock_db, sample_comment_data):
         """Testa erro de banco de dados."""
         with (
-            patch("acesso_livre_api.src.comments.service.get_location_by_id"),
             patch("acesso_livre_api.src.comments.service.models.Comment"),
             patch("acesso_livre_api.src.comments.service.datetime"),
         ):
@@ -178,7 +176,7 @@ class TestUpdateCommentStatus:
     def test_update_comment_status_success(self, mock_db):
         """Testa atualização bem-sucedida de status."""
         mock_comment = Mock()
-        mock_comment.status.value = "pending"
+        mock_comment.status = "pending"
         mock_comment.images = None
 
         mock_db.query.return_value.filter.return_value.first.return_value = mock_comment
@@ -212,7 +210,7 @@ class TestUpdateCommentStatus:
     def test_update_comment_status_not_pending(self, mock_db):
         """Testa comentário que não está pendente."""
         mock_comment = Mock()
-        mock_comment.status.value = "approved"
+        mock_comment.status = "approved"
 
         mock_db.query.return_value.filter.return_value.first.return_value = mock_comment
 
@@ -224,7 +222,7 @@ class TestUpdateCommentStatus:
     def test_update_comment_status_db_error(self, mock_db):
         """Testa erro de banco de dados."""
         mock_comment = Mock()
-        mock_comment.status.value = "pending"
+        mock_comment.status = "pending"
 
         mock_db.query.return_value.filter.return_value.first.return_value = mock_comment
         mock_db.commit.side_effect = SQLAlchemyError("DB Error")

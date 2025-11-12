@@ -66,12 +66,18 @@ def test_patch_comment_not_pending():
 
 def test_patch_comments_with_generic_exception():
     db_mock = MagicMock()
-    db_mock.query().filter().order_by().offset().limit().all.side_effect = Exception(
-        "Database error"
-    )
 
-    with pytest.raises(service.CommentGenericException):
-        service.get_comments_with_status_pending(db_mock)
+    existing_comment = MagicMock(id=1, status=CommentStatus.PENDING)
+    db_mock.query().filter().first.return_value = existing_comment
+
+    db_mock.commit.side_effect = Exception("Database error")
+
+    new_status = schemas.CommentUpdateStatus(status=CommentStatus.APPROVED)
+
+    with pytest.raises(service.CommentUpdateException):
+        service.update_comment_status(db_mock, comment_id=1, new_status=new_status)
+
+    db_mock.rollback.assert_called_once()
 
 
 def test_patch_comment_with_update_error():
