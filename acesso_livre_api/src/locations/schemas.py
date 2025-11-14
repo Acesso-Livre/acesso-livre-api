@@ -46,8 +46,6 @@ class AccessibilityItemCreate(BaseModel):
 
     name: str
     icon_url: str
-    top: float
-    left: float
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -58,8 +56,6 @@ class AccessibilityItemResponse(BaseModel):
     id: int
     name: str
     icon_url: str
-    top: float
-    left: float
 
     model_config = ConfigDict(from_attributes=True)
 
