@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from acesso_livre_api.src.comments import models, schemas
 
+from acesso_livre_api.src.locations.service import update_location_average_rating
 from acesso_livre_api.src.comments.exceptions import (
     CommentCreateException,
     CommentDeleteException,
@@ -127,15 +128,18 @@ def update_comment_status(
         if comment.status != "pending":
             raise CommentNotPendingException(comment_id, comment.status)
 
-        comment.status = new_status.status.value
+        comment.status = status_value
         db.commit()
         db.refresh(comment)
+
+        if status_value == "approved":
+            update_location_average_rating(db, comment.location_id, comment.rating)
 
         if comment.images is None:
             comment.images = []
 
         logger.info(
-            f"Comentário {comment_id} atualizado com sucesso para status {new_status.status.value}"
+            f"Comentário {comment_id} atualizado com sucesso para status {status_value}"
         )
         return comment
 

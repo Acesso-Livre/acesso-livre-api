@@ -2,14 +2,16 @@ import logging
 
 from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.orm import Session, joinedload
-
+from acesso_livre_api.src.comments import models as comment_models
 from acesso_livre_api.src.locations import exceptions, models, schemas
 
 logger = logging.getLogger(__name__)
 
+
 def create_location(db: Session, location: schemas.LocationCreate):
     try:
         data = location.model_dump()
+
         db_location = models.Location(**data)
         db.add(db_location)
         db.commit()
@@ -26,6 +28,7 @@ def create_location(db: Session, location: schemas.LocationCreate):
         db.rollback()
         raise exceptions.LocationCreateException()
 
+
 def get_all_locations(db: Session, skip: int = 0, limit: int = 20):
     try:
         locations = db.query(models.Location).offset(skip).limit(limit).all()
@@ -34,6 +37,7 @@ def get_all_locations(db: Session, skip: int = 0, limit: int = 20):
     except Exception as e:
         logger.error(f"Erro ao obter localizações: {str(e)}")
         raise exceptions.LocationGenericException()
+
 
 def create_accessibility_item(db: Session, item: schemas.AccessibilityItemCreate):
     try:
@@ -53,6 +57,7 @@ def create_accessibility_item(db: Session, item: schemas.AccessibilityItemCreate
         db.rollback()
         raise exceptions.LocationGenericException()
 
+
 def get_all_accessibility_items(db: Session):
     try:
         items = db.query(models.AccessibilityItem).all()
@@ -62,9 +67,14 @@ def get_all_accessibility_items(db: Session):
         logger.error(f"Erro ao obter itens de acessibilidade: {str(e)}")
         raise exceptions.LocationGenericException()
 
+
 def get_accessibility_item_by_id(db: Session, item_id: int):
     try:
-        item = db.query(models.AccessibilityItem).filter(models.AccessibilityItem.id == item_id).first()
+        item = (
+            db.query(models.AccessibilityItem)
+            .filter(models.AccessibilityItem.id == item_id)
+            .first()
+        )
 
         if not item:
             raise exceptions.LocationNotFoundException()
@@ -78,7 +88,12 @@ def get_accessibility_item_by_id(db: Session, item_id: int):
 
 def get_location_by_id(db: Session, location_id: int):
     try:
-        location = db.query(models.Location).options(joinedload(models.Location.accessibility_items)).filter(models.Location.id == location_id).first()
+        location = (
+            db.query(models.Location)
+            .options(joinedload(models.Location.accessibility_items))
+            .filter(models.Location.id == location_id)
+            .first()
+        )
 
         if not location:
             raise exceptions.LocationNotFoundException()
@@ -97,7 +112,9 @@ def get_location_by_id(db: Session, location_id: int):
         raise exceptions.LocationNotFoundException()
 
 
-def update_location(db: Session, location_id: int, location_update: schemas.LocationUpdate):
+def update_location(
+    db: Session, location_id: int, location_update: schemas.LocationUpdate
+):
     try:
         location = get_location_by_id(db, location_id)
         update_data = location_update.model_dump(exclude_unset=True)
@@ -116,7 +133,9 @@ def update_location(db: Session, location_id: int, location_update: schemas.Loca
     except exceptions.LocationNotFoundException:
         raise
     except sqlalchemy_exc.SQLAlchemyError as e:
-        logger.error(f"Erro de banco de dados ao atualizar localização {location_id}: {str(e)}")
+        logger.error(
+            f"Erro de banco de dados ao atualizar localização {location_id}: {str(e)}"
+        )
         db.rollback()
         raise exceptions.LocationUpdateException()
     except Exception as e:
@@ -135,10 +154,54 @@ def delete_location(db: Session, location_id: int):
     except exceptions.LocationNotFoundException:
         raise
     except sqlalchemy_exc.SQLAlchemyError as e:
-        logger.error(f"Erro de banco de dados ao excluir localização {location_id}: {str(e)}")
+        logger.error(
+            f"Erro de banco de dados ao excluir localização {location_id}: {str(e)}"
+        )
         db.rollback()
         raise exceptions.LocationDeleteException()
     except Exception as e:
         logger.error(f"Erro inesperado ao excluir localização {location_id}: {str(e)}")
         db.rollback()
         raise exceptions.LocationDeleteException()
+
+
+def update_location_average_rating(db: Session, location_id: int, new_value: float):
+    try:
+        location = (
+            db.query(models.Location).filter(models.Location.id == location_id).first()
+        )
+
+        if not location:
+            return
+
+        count_approved = (
+            db.query(comment_models.Comment)
+            .filter(
+                comment_models.Comment.location_id == location_id,
+                comment_models.Comment.status == "approved",
+            )
+            .count()
+        )
+        current_avg = location.avg_rating or 0.0
+
+        location.avg_rating = ((current_avg * count_approved) + new_value) / (
+            count_approved + 1
+        )
+
+        db.commit()
+        db.refresh(location)
+        return location
+    except exceptions.LocationNotFoundException:
+        raise
+    except sqlalchemy_exc.SQLAlchemyError as e:
+        logger.error(
+            f"Erro de banco de dados ao atualizar média de avaliação da localização {location_id}: {str(e)}"
+        )
+        db.rollback()
+        raise exceptions.LocationUpdateException()
+    except Exception as e:
+        logger.error(
+            f"Erro inesperado ao atualizar média de avaliação da localização {location_id}: {str(e)}"
+        )
+        db.rollback()
+        raise exceptions.LocationUpdateException()

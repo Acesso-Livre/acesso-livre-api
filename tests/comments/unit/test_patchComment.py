@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -6,7 +6,8 @@ from acesso_livre_api.src.comments import schemas, service
 from acesso_livre_api.src.comments.models import CommentStatus
 
 
-def test_patch_comment_success():
+@patch("acesso_livre_api.src.comments.service.update_location_average_rating")
+def test_patch_comment_success(mock_update_avg):
     db_mock = MagicMock()
 
     # create a comment to be updated

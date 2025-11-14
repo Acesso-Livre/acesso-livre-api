@@ -173,7 +173,8 @@ class TestGetCommentsWithStatusPending:
 class TestUpdateCommentStatus:
     """Testes para update_comment_status."""
 
-    def test_update_comment_status_success(self, mock_db):
+    @patch("acesso_livre_api.src.comments.service.update_location_average_rating")
+    def test_update_comment_status_success(self, mock_update_avg, mock_db):
         """Testa atualização bem-sucedida de status."""
         mock_comment = Mock()
         mock_comment.status = "pending"

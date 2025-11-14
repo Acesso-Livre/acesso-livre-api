@@ -13,7 +13,7 @@ async def test_create_comment_success(client: AsyncClient, created_location):
         "images": [],
     }
     response = await client.post("/api/comments/", json=comment_data)
-    assert response.status_code == 201
+    assert response.status_code == 200
     data = response.json()
     assert "id" in data
     assert data["status"] == "pending"

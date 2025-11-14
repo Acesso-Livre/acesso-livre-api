@@ -11,11 +11,7 @@ CREATE_COMMENT_DOCS = {
     "responses": {
         201: {
             "description": "Comentário criado com sucesso",
-            "content": {
-                "application/json": {
-                    "example": {"id": 1, "status": "pending"}
-                }
-            },
+            "content": {"application/json": {"example": {"id": 1, "status": "pending"}}},
         },
         422: {
             "description": "Erro de validação nos dados enviados",
@@ -42,7 +38,44 @@ CREATE_COMMENT_DOCS = {
                                         "type": "missing",
                                         "loc": ["body", "location_id"],
                                         "msg": "Field required",
-                                        "input": {"user_name": "João", "rating": 5, "comment": "Bom lugar"}
+                                        "input": {
+                                            "user_name": "João",
+                                            "rating": 5,
+                                            "comment": "Bom lugar",
+                                        },
+                                    }
+                                ]
+                            },
+                        },
+                        "user_name_too_long": {
+                            "summary": "Nome de usuário muito longo",
+                            "value": {
+                                "detail": [
+                                    {
+                                        "field": "user_name",
+                                        "message": "String should have at most 30 characters",
+                                    }
+                                ]
+                            },
+                        },
+                        "comment_too_long": {
+                            "summary": "Comentário muito longo",
+                            "value": {
+                                "detail": [
+                                    {
+                                        "field": "comment",
+                                        "message": "String should have at most 500 characters",
+                                    }
+                                ]
+                            },
+                        },
+                        "rating_too_low": {
+                            "summary": "Avaliação muito baixa",
+                            "value": {
+                                "detail": [
+                                    {
+                                        "field": "rating",
+                                        "message": "Value should be greater than or equal to 1",
                                     }
                                 ]
                             },
@@ -63,7 +96,6 @@ CREATE_COMMENT_DOCS = {
         },
     },
     "tags": ["Comentários"],
-    "status_code": 201,
 }
 
 # Documentação para o endpoint de listar comentários pendentes
@@ -85,7 +117,7 @@ GET_PENDING_COMMENTS_DOCS = {
                                 "location_id": 123,
                                 "status": "pending",
                                 "images": ["https://example.com/image1.jpg"],
-                                "created_at": "2023-10-01T12:00:00Z"
+                                "created_at": "2023-10-01T12:00:00Z",
                             },
                             {
                                 "id": 2,
@@ -95,8 +127,8 @@ GET_PENDING_COMMENTS_DOCS = {
                                 "location_id": 456,
                                 "status": "pending",
                                 "images": [],
-                                "created_at": "2023-10-02T14:30:00Z"
-                            }
+                                "created_at": "2023-10-02T14:30:00Z",
+                            },
                         ]
                     }
                 }
@@ -143,7 +175,7 @@ UPDATE_COMMENT_STATUS_DOCS = {
                         "location_id": 123,
                         "status": "approved",
                         "images": ["https://example.com/image1.jpg"],
-                        "created_at": "2023-10-01T12:00:00Z"
+                        "created_at": "2023-10-01T12:00:00Z",
                     }
                 }
             },
@@ -152,9 +184,7 @@ UPDATE_COMMENT_STATUS_DOCS = {
             "description": "Acesso negado",
             "content": {
                 "application/json": {
-                    "example": {
-                        "detail": "Sem permissão para atualização do comentário"
-                    }
+                    "example": {"detail": "Sem permissão para atualização do comentário"}
                 }
             },
         },
@@ -188,7 +218,9 @@ UPDATE_COMMENT_STATUS_DOCS = {
         500: {
             "description": "Erro interno do servidor",
             "content": {
-                "application/json": {"example": {"detail": "Erro ao atualizar comentário"}}
+                "application/json": {
+                    "example": {"detail": "Erro ao atualizar comentário"}
+                }
             },
         },
     },
@@ -225,11 +257,7 @@ DELETE_COMMENT_DOCS = {
         422: {
             "description": "Erro de validação",
             "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "Parâmetro de rota inválido"
-                    }
-                }
+                "application/json": {"example": {"detail": "Parâmetro de rota inválido"}}
             },
         },
         500: {
@@ -259,7 +287,7 @@ GET_COMMENT_DOCS = {
                         "location_id": 123,
                         "status": "approved",
                         "images": ["https://example.com/image1.jpg"],
-                        "created_at": "2023-10-01T12:00:00Z"
+                        "created_at": "2023-10-01T12:00:00Z",
                     }
                 }
             },
@@ -273,19 +301,13 @@ GET_COMMENT_DOCS = {
         500: {
             "description": "Erro interno do servidor",
             "content": {
-                "application/json": {
-                    "example": {"detail": "Comentário não encontrado"}
-                }
+                "application/json": {"example": {"detail": "Comentário não encontrado"}}
             },
         },
         422: {
             "description": "Erro de validação",
             "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "Parâmetro de rota inválido"
-                    }
-                }
+                "application/json": {"example": {"detail": "Parâmetro de rota inválido"}}
             },
         },
     },
@@ -311,7 +333,7 @@ GET_COMMENTS_BY_LOCATION_DOCS = {
                                 "location_id": 123,
                                 "status": "approved",
                                 "images": ["https://example.com/image1.jpg"],
-                                "created_at": "2023-10-01T12:00:00Z"
+                                "created_at": "2023-10-01T12:00:00Z",
                             },
                             {
                                 "id": 2,
@@ -321,8 +343,8 @@ GET_COMMENTS_BY_LOCATION_DOCS = {
                                 "location_id": 123,
                                 "status": "pending",
                                 "images": [],
-                                "created_at": "2023-10-02T14:30:00Z"
-                            }
+                                "created_at": "2023-10-02T14:30:00Z",
+                            },
                         ]
                     }
                 }
@@ -341,11 +363,7 @@ GET_COMMENTS_BY_LOCATION_DOCS = {
         422: {
             "description": "Erro de validação",
             "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "Parâmetro de rota inválido"
-                    }
-                }
+                "application/json": {"example": {"detail": "Parâmetro de rota inválido"}}
             },
         },
         500: {
