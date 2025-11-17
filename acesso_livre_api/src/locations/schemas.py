@@ -1,6 +1,8 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
+
+from acesso_livre_api.storage.get_url import get_public_url
 
 
 class LocationBase(BaseModel):
@@ -45,7 +47,7 @@ class AccessibilityItemCreate(BaseModel):
     """Schema para criação de itens de acessibilidade."""
 
     name: str
-    icon_url: str
+    icon_path: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -56,6 +58,15 @@ class AccessibilityItemResponse(BaseModel):
     id: int
     name: str
     icon_url: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AccessibilityItemCreateResponse(BaseModel):
+    """Schema para resposta de criação de item de acessibilidade (sem URL)."""
+
+    id: int
+    name: str
 
     model_config = ConfigDict(from_attributes=True)
 

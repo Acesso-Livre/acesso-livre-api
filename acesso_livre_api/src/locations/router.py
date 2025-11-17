@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, File, UploadFile, Form
 from sqlalchemy.orm import Session
 
 from acesso_livre_api.src.admins import dependencies
 from acesso_livre_api.src.database import get_db
 from acesso_livre_api.src.locations import docs, schemas, service
+from acesso_livre_api.storage import upload_image
 
 router = APIRouter()
 
@@ -23,16 +24,22 @@ def create_location(
 
 @router.post(
     "/accessibility-items/",
-    response_model=schemas.AccessibilityItemResponse,
+    response_model=schemas.AccessibilityItemCreateResponse,
     **docs.CREATE_ACCESSIBILITY_ITEM_DOCS,
 )
 @dependencies.require_auth
-def create_accessibility_item(
-    item: schemas.AccessibilityItemCreate,
+async def create_accessibility_item(
+    name: str = Form(...),
+    image: UploadFile = File(...),
     authenticated_user: bool = dependencies.authenticated_user,
     db: Session = Depends(get_db),
 ):
-    db_item = service.create_accessibility_item(db=db, item=item)
+    # Fazer upload para o storage
+    icon_path = upload_image.upload_image(image)
+
+    # Criar o item com o path
+    item_data = schemas.AccessibilityItemCreate(name=name, icon_path=icon_path)
+    db_item = service.create_accessibility_item(db=db, item=item_data)
     return db_item
 
 

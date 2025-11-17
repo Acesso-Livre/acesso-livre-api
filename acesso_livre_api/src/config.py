@@ -11,11 +11,15 @@ class Settings(BaseSettings):
     algorithm: str
     access_token_expire_minutes: int
     reset_token_expire_minutes: int
-    mode: str = "prod" 
-    
+    bucket_name: str
+    bucket_endpoint_url: str
+    bucket_secret_key: str
+    mode: str = "prod"
+
+
 settings = Settings()
 
 if settings.mode == "development":
     logging.basicConfig()
-    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
     print("-----SQLAlchemy debug logs ativados (modo dev)-----")

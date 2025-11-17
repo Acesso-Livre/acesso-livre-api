@@ -4,6 +4,7 @@ from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.orm import Session, joinedload
 from acesso_livre_api.src.comments import models as comment_models
 from acesso_livre_api.src.locations import exceptions, models, schemas
+from acesso_livre_api.storage.get_url import get_public_url
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,17 @@ def create_accessibility_item(db: Session, item: schemas.AccessibilityItemCreate
 def get_all_accessibility_items(db: Session):
     try:
         items = db.query(models.AccessibilityItem).all()
-        return schemas.AccessibilityItemResponseList(accessibility_items=items)
+
+        # Manually create response objects to include the public URL
+        response_items = []
+        for item in items:
+            public_url = get_public_url(item.icon_path) if item.icon_path else None
+            response_items.append(
+                schemas.AccessibilityItemResponse(
+                    id=item.id, name=item.name, icon_url=public_url
+                )
+            )
+        return schemas.AccessibilityItemResponseList(accessibility_items=response_items)
 
     except Exception as e:
         logger.error(f"Erro ao obter itens de acessibilidade: {str(e)}")
@@ -79,7 +90,11 @@ def get_accessibility_item_by_id(db: Session, item_id: int):
         if not item:
             raise exceptions.LocationNotFoundException()
 
-        return item
+        # Manually create a response object to include the public URL
+        public_url = get_public_url(item.icon_path) if item.icon_path else None
+        return schemas.AccessibilityItemResponse(
+            id=item.id, name=item.name, icon_url=public_url
+        )
 
     except Exception as e:
         logger.error(f"Erro ao obter item de acessibilidade {item_id}: {str(e)}")
