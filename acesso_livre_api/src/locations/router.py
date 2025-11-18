@@ -35,10 +35,10 @@ async def create_accessibility_item(
     db: Session = Depends(get_db),
 ):
     # Fazer upload para o storage
-    icon_path = upload_image.upload_image(image)
+    icon_url = upload_image.upload_image(image)
 
     # Criar o item com o path
-    item_data = schemas.AccessibilityItemCreate(name=name, icon_path=icon_path)
+    item_data = schemas.AccessibilityItemCreate(name=name, icon_url=icon_url)
     db_item = service.create_accessibility_item(db=db, item=item_data)
     return db_item
 

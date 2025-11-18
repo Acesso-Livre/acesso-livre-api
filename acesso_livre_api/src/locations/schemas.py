@@ -47,7 +47,7 @@ class AccessibilityItemCreate(BaseModel):
     """Schema para criação de itens de acessibilidade."""
 
     name: str
-    icon_path: str
+    icon_url: str
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -4,7 +4,7 @@ from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.orm import Session, joinedload
 from acesso_livre_api.src.comments import models as comment_models
 from acesso_livre_api.src.locations import exceptions, models, schemas
-from acesso_livre_api.storage.get_url import get_public_url
+from acesso_livre_api.storage.get_url import get_signed_url
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ def get_all_accessibility_items(db: Session):
         # Manually create response objects to include the public URL
         response_items = []
         for item in items:
-            public_url = get_public_url(item.icon_path) if item.icon_path else None
+            public_url = get_signed_url(item.icon_url) if item.icon_url else None
             response_items.append(
                 schemas.AccessibilityItemResponse(
                     id=item.id, name=item.name, icon_url=public_url
@@ -90,8 +90,7 @@ def get_accessibility_item_by_id(db: Session, item_id: int):
         if not item:
             raise exceptions.LocationNotFoundException()
 
-        # Manually create a response object to include the public URL
-        public_url = get_public_url(item.icon_path) if item.icon_path else None
+        public_url = get_signed_url(item.icon_url) if item.icon_url else None
         return schemas.AccessibilityItemResponse(
             id=item.id, name=item.name, icon_url=public_url
         )
