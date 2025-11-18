@@ -346,10 +346,10 @@ async def test_update_comment_status_generic_exception(
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_delete_comment_generic_exception(
+async def test_delete_comment_twice_returns_404(
     client: AsyncClient, created_location, admin_auth_header
 ):
-    """Testa o tratamento genérico de exceções no delete_comment."""
+    """Testa que deletar um comentário já deletado retorna 404."""
     comment_data = {
         "user_name": "Test User",
         "rating": 5,
@@ -365,7 +365,7 @@ async def test_delete_comment_generic_exception(
     )
     assert response.status_code == 200
 
-    # Tentar deletar novamente (deve causar erro genérico)
+    # Tentar deletar novamente deve retornar 404 pois não existe mais
     response = await client.delete(
         f"/api/comments/{comment_id}", headers=admin_auth_header
     )

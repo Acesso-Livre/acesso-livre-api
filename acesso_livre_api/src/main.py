@@ -9,14 +9,15 @@ from .admins.router import router as admins_router
 from .comments.router import router as comments_router
 from .locations.router import router as locations_router
 from .openapi_config import create_custom_openapi
+from .database import engine, Base
 
 # Configuração básica de logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 app = FastAPI()
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -25,8 +26,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     retornar uma resposta JSON estruturada e amigável.
     """
     # Verificar se há erros de path params
-    has_path_errors = any('path' in str(error["loc"]) for error in exc.errors())
-    
+    has_path_errors = any("path" in str(error["loc"]) for error in exc.errors())
+
     if has_path_errors:
         # Retornar resposta minificada para erros de path params
         logging.error(f"Erro de validação de path params: {exc.errors()}")
@@ -36,11 +37,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
                 "detail": "Parâmetro de rota inválido",
             },
         )
-    
+
     # Formato detalhado para erros de body/request
     formatted_errors = []
     for error in exc.errors():
-        field = ".".join(str(loc) for loc in error["loc"] if str(loc) != 'body')
+        field = ".".join(str(loc) for loc in error["loc"] if str(loc) != "body")
         message = error["msg"]
         formatted_errors.append({"field": field, "message": message})
 
@@ -54,10 +55,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         },
     )
 
+
 # Configuração OpenAPI obrigatória com autenticação JWT
 app.openapi = create_custom_openapi(app)
 
-app.include_router(admins_router, prefix="/api/admins",tags=["Administração"])
+app.include_router(admins_router, prefix="/api/admins", tags=["Administração"])
 app.include_router(comments_router, prefix="/api/comments", tags=["Comentários"])
 app.include_router(locations_router, prefix="/api/locations", tags=["Locais"])
 
@@ -69,6 +71,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.get("/", tags=["Status"])
 def read_root():

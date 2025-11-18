@@ -1,6 +1,7 @@
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
+from sqlalchemy.ext.asyncio import create_async_engine
 
 # Import settings from config
 from acesso_livre_api.src.config import settings
@@ -10,6 +11,7 @@ from alembic import context
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
 
 # Set the database URL from settings
 config.set_main_option("sqlalchemy.url", settings.database_url)
@@ -62,19 +64,27 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    configuration = config.get_section(config.config_ini_section, {})
+    configuration["sqlalchemy.url"] = config.get_main_option("sqlalchemy.url")
+
+    connectable = create_async_engine(
+        configuration["sqlalchemy.url"],
         poolclass=pool.NullPool,
     )
 
-    with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+    import asyncio
 
-        with context.begin_transaction():
-            context.run_migrations()
+    async def do_run_migrations() -> None:
+        async with connectable.begin() as connection:
+            await connection.run_sync(
+                lambda conn: context.configure(
+                    connection=conn, target_metadata=target_metadata
+                )
+            )
+
+            await connection.run_sync(context.run_migrations)
+
+    asyncio.run(do_run_migrations())
 
 
 if context.is_offline_mode():

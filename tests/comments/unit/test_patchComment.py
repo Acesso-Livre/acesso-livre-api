@@ -1,25 +1,24 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 
 import pytest
 
-from acesso_livre_api.src.comments import schemas, service
+from acesso_livre_api.src.comments import schemas, service, exceptions
 from acesso_livre_api.src.comments.models import CommentStatus
 
 
 @pytest.mark.asyncio
-@patch("acesso_livre_api.src.comments.service.update_location_average_rating")
+@patch(
+    "acesso_livre_api.src.comments.service.update_location_average_rating",
+    new_callable=AsyncMock,
+)
 async def test_patch_comment_success(mock_update_avg):
-    db_mock = MagicMock()
+    db_mock = AsyncMock()
 
-    # create a comment to be updated without images
-    original_comment = MagicMock(
-        user_name="test_user",
-        rating=3,
-        comment="It's okay.",
-        status=CommentStatus.PENDING,
-        images=[],  # Sem imagens
-    )
-    db_mock.query().filter().first.return_value = original_comment
+    original_comment = MagicMock(status=CommentStatus.PENDING, location_id=1, rating=4)
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = original_comment
+    db_mock.execute = AsyncMock(return_value=mock_result)
 
     new_status = schemas.CommentUpdateStatus(status=CommentStatus.APPROVED)
     updated_comment = await service.update_comment_status(
@@ -27,29 +26,38 @@ async def test_patch_comment_success(mock_update_avg):
     )
 
     assert updated_comment.status == CommentStatus.APPROVED
+    db_mock.commit.assert_awaited_once()
+    mock_update_avg.assert_awaited_once_with(db_mock, 1, 4)
 
 
 @pytest.mark.asyncio
 async def test_patch_comment_status_invalid():
-    db_mock = MagicMock()
+    db_mock = AsyncMock()
+
+    mock_comment = MagicMock(status=CommentStatus.PENDING)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = mock_comment
+    db_mock.execute = AsyncMock(return_value=mock_result)
 
     new_status = MagicMock()
-    new_status.status = MagicMock(value="invalid_status")
+    new_status.status = MagicMock()
+    new_status.status.value = "invalid_status"
 
-    db_mock.query().filter().first.return_value = None
-
-    with pytest.raises(service.CommentStatusInvalidException):
+    with pytest.raises(exceptions.CommentStatusInvalidException):
         await service.update_comment_status(db_mock, comment_id=1, new_status=new_status)
 
 
 @pytest.mark.asyncio
 async def test_patch_comment_not_found():
-    db_mock = MagicMock()
-    db_mock.query().filter().first.return_value = None
+    db_mock = AsyncMock()
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    db_mock.execute = AsyncMock(return_value=mock_result)
 
     new_status = schemas.CommentUpdateStatus(status=CommentStatus.APPROVED)
 
-    with pytest.raises(service.CommentNotFoundException):
+    with pytest.raises(exceptions.CommentNotFoundException):
         await service.update_comment_status(
             db_mock, comment_id=999, new_status=new_status
         )
@@ -57,47 +65,39 @@ async def test_patch_comment_not_found():
 
 @pytest.mark.asyncio
 async def test_patch_comment_not_pending():
-    db_mock = MagicMock()
+    db_mock = AsyncMock()
 
-    # Simulate a comment that is not pending
     existing_comment = MagicMock(id=1, status=CommentStatus.APPROVED)
-    db_mock.query().filter().first.return_value = existing_comment
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = existing_comment
+    db_mock.execute = AsyncMock(return_value=mock_result)
 
     new_status = schemas.CommentUpdateStatus(status=CommentStatus.REJECTED)
 
-    with pytest.raises(service.CommentNotPendingException):
+    with pytest.raises(exceptions.CommentNotPendingException):
         await service.update_comment_status(db_mock, comment_id=1, new_status=new_status)
 
 
 @pytest.mark.asyncio
-async def test_patch_comments_with_generic_exception():
-    db_mock = MagicMock()
+@patch(
+    "acesso_livre_api.src.comments.service.update_location_average_rating",
+    new_callable=AsyncMock,
+)
+async def test_patch_comments_with_generic_exception(mock_update_avg):
+    db_mock = AsyncMock()
 
-    existing_comment = MagicMock(id=1, status=CommentStatus.PENDING)
-    db_mock.query().filter().first.return_value = existing_comment
+    existing_comment = MagicMock(status=CommentStatus.PENDING)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = existing_comment
+    db_mock.execute = AsyncMock(return_value=mock_result)
 
-    db_mock.commit.side_effect = Exception("Database error")
+    db_mock.commit = AsyncMock(side_effect=Exception("Database error"))
+
+    db_mock.rollback = AsyncMock()
 
     new_status = schemas.CommentUpdateStatus(status=CommentStatus.APPROVED)
 
-    with pytest.raises(service.CommentUpdateException):
+    with pytest.raises(exceptions.CommentUpdateException):
         await service.update_comment_status(db_mock, comment_id=1, new_status=new_status)
 
-
-@pytest.mark.asyncio
-async def test_patch_comment_with_update_error():
-    db_mock = MagicMock()
-
-    # create a comment to be updated
-    original_comment = MagicMock(
-        user_name="test_user",
-        rating=3,
-        comment="It's okay.",
-        status=CommentStatus.PENDING,
-        images=["old_image.jpg"],
-    )
-    db_mock.query().filter().first.return_value = original_comment
-    db_mock.commit.side_effect = Exception("DB error")
-    new_status = schemas.CommentUpdateStatus(status=CommentStatus.APPROVED)
-    with pytest.raises(service.CommentUpdateException):
-        await service.update_comment_status(db_mock, comment_id=1, new_status=new_status)
+    db_mock.rollback.assert_awaited_once()

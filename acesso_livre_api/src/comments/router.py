@@ -6,8 +6,10 @@ from acesso_livre_api.src.admins import dependencies
 from acesso_livre_api.src.comments import docs, schemas, service
 from acesso_livre_api.src.comments.exceptions import (
     CommentCreateException,
+    CommentDeleteException,
     CommentNotFoundException,
     CommentNotPendingException,
+    CommentPermissionDeniedException,
     CommentRatingInvalidException,
     CommentStatusInvalidException,
     CommentUpdateException,
@@ -129,12 +131,13 @@ async def delete_comment_with_id(
     db: Session = Depends(get_db),
     authenticated_user: bool = dependencies.authenticated_user,
 ):
-    success = await service.delete_comment(
-        db, comment_id, user_permissions=authenticated_user
-    )
-    if not success:
-        raise CommentNotFoundException()
-    return {"detail": "Comment deleted successfully"}
+    try:
+        await service.delete_comment(db, comment_id, user_permissions=authenticated_user)
+        return {"detail": "Comment deleted successfully"}
+    except (CommentNotFoundException, CommentPermissionDeniedException):
+        raise
+    except Exception:
+        raise CommentDeleteException()
 
 
 @router.get(
