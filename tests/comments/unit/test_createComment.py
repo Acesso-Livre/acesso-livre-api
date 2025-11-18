@@ -1,13 +1,13 @@
 from unittest.mock import MagicMock
 
 import pytest
-from pydantic import ValidationError
 
 from acesso_livre_api.src.comments import exceptions, service
 from acesso_livre_api.src.comments.schemas import CommentCreate
 
 
-def test_create_comment_success():
+@pytest.mark.asyncio
+async def test_create_comment_success():
     db_mock = MagicMock()
 
     mock_query = MagicMock()
@@ -19,7 +19,7 @@ def test_create_comment_success():
     commentToUp = CommentCreate(
         user_name="Maria Silva", rating=4, comment="mocked comment", location_id=123
     )
-    comment = service.create_comment(db_mock, commentToUp)
+    comment = await service.create_comment(db_mock, commentToUp)
 
     assert comment is not None
 
@@ -28,30 +28,19 @@ def test_create_comment_success():
     db_mock.refresh.assert_called_once()
 
 
-def test_create_comment_with_invalid_rating():
+@pytest.mark.asyncio
+async def test_create_comment_with_invalid_rating():
     db_mock = MagicMock()
     # Usamos model_construct para contornar a validação do Pydantic e testar a verificação do próprio serviço.
     invalid_comment = CommentCreate.model_construct(
         user_name="Maria Silva", rating=6, comment="Ótimo lugar!", location_id=1
     )
     with pytest.raises(exceptions.CommentRatingInvalidException):
-        service.create_comment(db_mock, invalid_comment)
+        await service.create_comment(db_mock, invalid_comment)
 
 
-def test_create_comment_with_invalid_images():
-    db_mock = MagicMock()
-    with pytest.raises(exceptions.CommentImagesInvalidException):
-        comment = CommentCreate(
-            user_name="João Souza",
-            rating=4,
-            comment="Lugar agradável.",
-            images=[""],
-            location_id=123,
-        )
-        service.create_comment(db_mock, comment)
-
-
-def test_create_comment_internal_error():
+@pytest.mark.asyncio
+async def test_create_comment_internal_error():
     db_mock = MagicMock()
     db_mock.commit.side_effect = Exception("Database error")
 
@@ -60,6 +49,6 @@ def test_create_comment_internal_error():
     )
 
     with pytest.raises(exceptions.CommentCreateException):
-        service.create_comment(db_mock, commentToUp)
+        await service.create_comment(db_mock, commentToUp)
 
     db_mock.rollback.assert_called_once()

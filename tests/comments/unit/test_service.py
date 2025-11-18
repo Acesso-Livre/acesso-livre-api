@@ -47,7 +47,8 @@ def sample_comment_data():
 class TestCreateComment:
     """Testes para create_comment."""
 
-    def test_create_comment_success(self, mock_db, sample_comment_data):
+    @pytest.mark.asyncio
+    async def test_create_comment_success(self, mock_db, sample_comment_data):
         """Testa criação bem-sucedida de comentário."""
         mock_comment = Mock()
         mock_comment.id = 1
@@ -65,30 +66,23 @@ class TestCreateComment:
             mock_db.commit.return_value = None
             mock_db.refresh.return_value = None
 
-            result = create_comment(mock_db, sample_comment_data)
+            result = await create_comment(mock_db, sample_comment_data)
 
             assert result == mock_comment
             mock_db.add.assert_called_once()
             mock_db.commit.assert_called_once()
             mock_db.refresh.assert_called_once()
 
-    def test_create_comment_rating_invalid(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_create_comment_rating_invalid(self, mock_db):
         """Testa erro de avaliação inválida."""
         mock_comment_data = Mock()
         mock_comment_data.rating = 6
         with pytest.raises(CommentRatingInvalidException):
-            create_comment(mock_db, mock_comment_data)
+            await create_comment(mock_db, mock_comment_data)
 
-    def test_create_comment_images_invalid(self, mock_db):
-        """Testa erro de imagens inválidas."""
-        invalid_data = schemas.CommentCreate(
-            user_name="Test", rating=5, comment="Test", location_id=1, images=[""]
-        )
-
-        with pytest.raises(CommentImagesInvalidException):
-            create_comment(mock_db, invalid_data)
-
-    def test_create_comment_db_error(self, mock_db, sample_comment_data):
+    @pytest.mark.asyncio
+    async def test_create_comment_db_error(self, mock_db, sample_comment_data):
         """Testa erro de banco de dados."""
         with (
             patch("acesso_livre_api.src.comments.service.models.Comment"),
@@ -98,7 +92,7 @@ class TestCreateComment:
             mock_db.commit.side_effect = SQLAlchemyError("DB Error")
 
             with pytest.raises(CommentCreateException):
-                create_comment(mock_db, sample_comment_data)
+                await create_comment(mock_db, sample_comment_data)
 
 
 class TestGetComment:
@@ -134,8 +128,10 @@ class TestGetComment:
 class TestGetCommentsWithStatusPending:
     """Testes para get_comments_with_status_pending."""
 
-    def test_get_comments_pending_success(self, mock_db):
+    @patch("acesso_livre_api.src.comments.service.get_signed_urls")
+    def test_get_comments_pending_success(self, mock_get_signed_urls, mock_db):
         """Testa obtenção bem-sucedida de comentários pendentes."""
+        mock_get_signed_urls.side_effect = lambda x: x
         mock_comments = [Mock(), Mock()]
         mock_comments[0].images = None
         mock_comments[1].images = ["image.jpg"]
@@ -275,8 +271,10 @@ class TestDeleteComment:
 class TestGetAllCommentsByLocationId:
     """Testes para get_all_comments_by_location_id."""
 
-    def test_get_comments_by_location_success(self, mock_db):
+    @patch("acesso_livre_api.src.comments.service.get_signed_urls")
+    def test_get_comments_by_location_success(self, mock_get_signed_urls, mock_db):
         """Testa obtenção bem-sucedida de comentários por localização."""
+        mock_get_signed_urls.side_effect = lambda x: x
         mock_comments = [Mock(), Mock()]
         mock_comments[0].images = None
         mock_comments[1].images = ["image.jpg"]

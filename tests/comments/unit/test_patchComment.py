@@ -10,13 +10,13 @@ from acesso_livre_api.src.comments.models import CommentStatus
 def test_patch_comment_success(mock_update_avg):
     db_mock = MagicMock()
 
-    # create a comment to be updated
+    # create a comment to be updated without images
     original_comment = MagicMock(
         user_name="test_user",
         rating=3,
         comment="It's okay.",
         status=CommentStatus.PENDING,
-        images=["old_image.jpg"],
+        images=[],  # Sem imagens
     )
     db_mock.query().filter().first.return_value = original_comment
 

@@ -10,9 +10,8 @@ async def test_create_comment_success(client: AsyncClient, created_location):
         "rating": 5,
         "comment": "This is a test comment.",
         "location_id": created_location["id"],
-        "images": [],
     }
-    response = await client.post("/api/comments/", json=comment_data)
+    response = await client.post("/api/comments/", data=comment_data)
     assert response.status_code == 200
     data = response.json()
     assert "id" in data
@@ -28,7 +27,7 @@ async def test_create_comment_invalid_rating(client: AsyncClient, created_locati
         "comment": "Invalid rating.",
         "location_id": created_location["id"],
     }
-    response = await client.post("/api/comments/", json=comment_data)
+    response = await client.post("/api/comments/", data=comment_data)
     assert response.status_code == 422
 
 
@@ -41,7 +40,7 @@ async def test_create_comment_nonexistent_location(client: AsyncClient):
         "comment": "Location does not exist.",
         "location_id": 9999,
     }
-    response = await client.post("/api/comments/", json=comment_data)
+    response = await client.post("/api/comments/", data=comment_data)
     assert response.status_code == 404
 
 
@@ -57,7 +56,7 @@ async def test_get_all_comments_by_location_id_success(
         "location_id": created_location["id"],
         "images": [],
     }
-    create_response = await client.post("/api/comments/", json=comment_data)
+    create_response = await client.post("/api/comments/", data=comment_data)
     comment_id = create_response.json()["id"]
 
     await client.patch(
@@ -111,7 +110,7 @@ async def test_get_pending_comments_success(
         "location_id": created_location["id"],
         "images": [],
     }
-    await client.post("/api/comments/", json=comment_data)
+    await client.post("/api/comments/", data=comment_data)
 
     response = await client.get("/api/comments/pending", headers=admin_auth_header)
 
@@ -151,7 +150,7 @@ async def test_update_comment_status_to_approved_success(
         "comment": "To be approved.",
         "location_id": created_location["id"],
     }
-    create_response = await client.post("/api/comments/", json=comment_data)
+    create_response = await client.post("/api/comments/", data=comment_data)
     comment_id = create_response.json()["id"]
 
     update_data = {"status": "approved"}
@@ -173,7 +172,7 @@ async def test_update_comment_status_not_pending(
         "comment": "Can't change status.",
         "location_id": created_location["id"],
     }
-    create_response = await client.post("/api/comments/", json=comment_data)
+    create_response = await client.post("/api/comments/", data=comment_data)
     comment_id = create_response.json()["id"]
     await client.patch(
         f"/api/comments/{comment_id}/status",
@@ -210,7 +209,7 @@ async def test_update_comment_status_no_auth(client: AsyncClient, created_locati
         "comment": "...",
         "location_id": created_location["id"],
     }
-    create_response = await client.post("/api/comments/", json=comment_data)
+    create_response = await client.post("/api/comments/", data=comment_data)
     comment_id = create_response.json()["id"]
 
     update_data = {"status": "approved"}
@@ -230,7 +229,7 @@ async def test_delete_comment_success(
         "comment": "Delete me.",
         "location_id": created_location["id"],
     }
-    create_response = await client.post("/api/comments/", json=comment_data)
+    create_response = await client.post("/api/comments/", data=comment_data)
     comment_id = create_response.json()["id"]
 
     response = await client.delete(
@@ -262,7 +261,7 @@ async def test_delete_comment_no_auth(client: AsyncClient, created_location):
         "comment": "...",
         "location_id": created_location["id"],
     }
-    create_response = await client.post("/api/comments/", json=comment_data)
+    create_response = await client.post("/api/comments/", data=comment_data)
     comment_id = create_response.json()["id"]
 
     response = await client.delete(f"/api/comments/{comment_id}")
@@ -281,7 +280,7 @@ async def test_read_comment_success(
         "comment": "Read me.",
         "location_id": created_location["id"],
     }
-    create_response = await client.post("/api/comments/", json=comment_data)
+    create_response = await client.post("/api/comments/", data=comment_data)
     comment_id = create_response.json()["id"]
 
     await client.patch(
@@ -318,7 +317,7 @@ async def test_create_comment_location_not_found_exception(client: AsyncClient):
         "comment": "This should trigger LocationNotFoundException",
         "location_id": 9999,
     }
-    response = await client.post("/api/comments/", json=comment_data)
+    response = await client.post("/api/comments/", data=comment_data)
     assert response.status_code == 404
 
 
@@ -334,7 +333,7 @@ async def test_update_comment_status_generic_exception(
         "comment": "Test",
         "location_id": created_location["id"],
     }
-    create_response = await client.post("/api/comments/", json=comment_data)
+    create_response = await client.post("/api/comments/", data=comment_data)
     comment_id = create_response.json()["id"]
 
     # Forçar uma situação que cause erro genérico (por exemplo, status inválido)
@@ -357,7 +356,7 @@ async def test_delete_comment_generic_exception(
         "comment": "Test",
         "location_id": created_location["id"],
     }
-    create_response = await client.post("/api/comments/", json=comment_data)
+    create_response = await client.post("/api/comments/", data=comment_data)
     comment_id = create_response.json()["id"]
 
     # Deletar uma vez
@@ -391,7 +390,7 @@ async def test_read_pending_comment_fails(client: AsyncClient, created_location)
         "comment": "This comment is pending and should not be visible.",
         "location_id": created_location["id"],
     }
-    create_response = await client.post("/api/comments/", json=comment_data)
+    create_response = await client.post("/api/comments/", data=comment_data)
     comment_id = create_response.json()["id"]
 
     response = await client.get(f"/api/comments/{comment_id}")
