@@ -5,7 +5,7 @@ from acesso_livre_api.storage.client import supabase_client
 from acesso_livre_api.storage.dependencies import ALLOWED_MIME_TYPES
 
 
-def upload_image(file: UploadFile) -> str:
+async def upload_image(file: UploadFile) -> str:
     """Uploads an image file to Supabase storage and returns the unique_filename."""
     try:
         client = supabase_client()
@@ -16,7 +16,7 @@ def upload_image(file: UploadFile) -> str:
         if file.content_type not in ALLOWED_MIME_TYPES:
             raise ValueError("Unsupported file type")
 
-        client.storage.from_("acesso-livre-bucket").upload(
+        await client.storage.from_("acesso-livre-bucket").upload(
             path=unique_filename,
             file=file_content,
             file_options={"content-type": file.content_type},

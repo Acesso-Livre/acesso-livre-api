@@ -74,7 +74,7 @@ class AccessibilityItemCreateResponse(BaseModel):
 class AccessibilityItemResponseList(BaseModel):
     """Schema para lista de itens de acessibilidade."""
 
-    accessibility_items: List[AccessibilityItemResponse] = Field(default=[])
+    accessibility_items: List[str] = Field(default=[])
 
     model_config = ConfigDict(from_attributes=True)
 

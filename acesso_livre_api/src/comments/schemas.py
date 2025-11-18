@@ -16,7 +16,11 @@ class CommentCreate(BaseModel):
     rating: int = Field(..., ge=1, le=5)
     comment: str = Field(..., max_length=500)
     location_id: int
-    images: Optional[List[str]] = None
+    # images: Optional[List[str]] = None
+
+
+class CommentCreateImages(BaseModel):
+    images: List[str]
 
 
 class CommentCreateResponse(BaseModel):

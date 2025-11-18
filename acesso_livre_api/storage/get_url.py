@@ -31,3 +31,12 @@ def get_signed_url(file_path: str, expires_in: int = 3600) -> str:
     except Exception as e:
         logging.error(f"Error getting signed URL for {file_path}: {str(e)}")
         raise e
+
+
+def get_signed_urls(file_paths: list[str], expires_in: int = 3600) -> list[str]:
+    """Returns a list of signed URLs for multiple files in Supabase storage."""
+    signed_urls = []
+    for path in file_paths:
+        signed_url = get_signed_url(path, expires_in)
+        signed_urls.append(signed_url)
+    return signed_urls

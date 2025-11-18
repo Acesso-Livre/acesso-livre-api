@@ -1,10 +1,11 @@
 import logging
 
+from httpx import get
 from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.orm import Session, joinedload
 from acesso_livre_api.src.comments import models as comment_models
 from acesso_livre_api.src.locations import exceptions, models, schemas
-from acesso_livre_api.storage.get_url import get_signed_url
+from acesso_livre_api.storage.get_url import get_signed_url, get_signed_urls
 
 logger = logging.getLogger(__name__)
 
@@ -63,16 +64,13 @@ def get_all_accessibility_items(db: Session):
     try:
         items = db.query(models.AccessibilityItem).all()
 
-        # Manually create response objects to include the public URL
-        response_items = []
-        for item in items:
-            public_url = get_signed_url(item.icon_url) if item.icon_url else None
-            response_items.append(
-                schemas.AccessibilityItemResponse(
-                    id=item.id, name=item.name, icon_url=public_url
-                )
-            )
-        return schemas.AccessibilityItemResponseList(accessibility_items=response_items)
+        get_signed_urls_list = get_signed_urls(
+            [item.icon_url for item in items if item.icon_url]
+        )
+
+        return schemas.AccessibilityItemResponseList(
+            accessibility_items=get_signed_urls_list
+        )
 
     except Exception as e:
         logger.error(f"Erro ao obter itens de acessibilidade: {str(e)}")
@@ -90,9 +88,9 @@ def get_accessibility_item_by_id(db: Session, item_id: int):
         if not item:
             raise exceptions.LocationNotFoundException()
 
-        public_url = get_signed_url(item.icon_url) if item.icon_url else None
+        image_url = get_signed_url(item.icon_url) if item.icon_url else None
         return schemas.AccessibilityItemResponse(
-            id=item.id, name=item.name, icon_url=public_url
+            id=item.id, name=item.name, icon_url=image_url
         )
 
     except Exception as e:
@@ -114,6 +112,8 @@ def get_location_by_id(db: Session, location_id: int):
 
         if location.images is None:
             location.images = []
+        else:
+            location.images = get_signed_urls(location.images)
         if location.avg_rating is None:
             location.avg_rating = 0.0
 

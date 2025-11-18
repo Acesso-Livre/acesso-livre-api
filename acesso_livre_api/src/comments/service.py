@@ -1,6 +1,7 @@
 import logging
 from datetime import UTC, datetime
 
+from httpx import get
 from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,11 @@ from acesso_livre_api.src.comments.exceptions import (
     CommentStatusInvalidException,
     CommentUpdateException,
 )
+from acesso_livre_api.storage import upload_image
+from acesso_livre_api.storage.get_url import get_signed_url, get_signed_urls
+from fastapi import UploadFile
+
+from acesso_livre_api.src.locations import models as location_models
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +42,8 @@ def get_comment(db: Session, comment_id: int):
 
         if comment.images is None:
             comment.images = []
+        else:
+            comment.images = get_signed_urls(comment.images)
 
         return comment
 
@@ -46,21 +54,21 @@ def get_comment(db: Session, comment_id: int):
         raise CommentNotFoundException()
 
 
-def create_comment(db: Session, comment: schemas.CommentCreate):
+async def create_comment(
+    db: Session, comment: schemas.CommentCreate, images: list[UploadFile] | None = None
+):
     try:
         if comment.rating < 1 or comment.rating > 5:
             raise CommentRatingInvalidException(comment.rating)
 
-        data = comment.model_dump()
-        if not data["images"]:
-            data["images"] = []
+        image_list = []
+        if images:
+            for img in images:
+                upload_image_path = await upload_image.upload_image(img)
+                image_list.append(upload_image_path)
 
-        if data["images"]:
-            for img in data["images"]:
-                if not isinstance(img, str) or not img.strip():
-                    raise CommentImagesInvalidException(
-                        "Uma ou mais imagens têm formato inválido"
-                    )
+        data = comment.model_dump()
+        data["images"] = image_list
 
         db_comment = models.Comment(**data, created_at=datetime.now(UTC))
         db.add(db_comment)
@@ -94,7 +102,8 @@ def get_comments_with_status_pending(db: Session, skip: int = 0, limit: int = 10
         for comment in comments:
             if comment.images is None:
                 comment.images = []
-
+            else:
+                comment.images = get_signed_urls(comment.images)
         return comments
 
     except Exception as e:
@@ -134,6 +143,23 @@ def update_comment_status(
 
         if status_value == "approved":
             update_location_average_rating(db, comment.location_id, comment.rating)
+
+            if comment.images and len(comment.images) > 0:
+                location = (
+                    db.query(location_models.Location)
+                    .filter(location_models.Location.id == comment.location_id)
+                    .first()
+                )
+
+                if location:
+                    if location.images is None:
+                        location.images = []
+
+                    for image_path in comment.images:
+                        if image_path not in location.images:
+                            location.images.append(image_path)
+
+                db.commit()
 
         if comment.images is None:
             comment.images = []
@@ -210,6 +236,8 @@ def get_all_comments_by_location_id(location_id: int, skip: int, limit: int, db:
         for comment in comments:
             if comment.images is None:
                 comment.images = []
+            else:
+                comment.images = get_signed_urls(comment.images)
 
         return comments
 

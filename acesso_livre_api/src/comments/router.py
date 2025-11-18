@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, File, UploadFile, Form, status
 from fastapi.params import Query
 from sqlalchemy.orm import Session
 
@@ -15,6 +15,7 @@ from acesso_livre_api.src.comments.exceptions import (
 from acesso_livre_api.src.database import get_db
 from acesso_livre_api.src.locations import service as location_service
 from acesso_livre_api.src.locations.exceptions import LocationNotFoundException
+from acesso_livre_api.storage import upload_image
 
 router = APIRouter()
 
@@ -24,13 +25,24 @@ router = APIRouter()
     response_model=schemas.CommentCreateResponse,
     **docs.CREATE_COMMENT_DOCS,
 )
-def create_comment(
-    comment: schemas.CommentCreate,
+async def create_comment(
+    user_name: str = Form(..., max_length=30),
+    rating: int = Form(..., ge=1, le=5),
+    comment: str = Form(..., max_length=500),
+    location_id: int = Form(...),
+    images: list[UploadFile] | None = File(None),
     db: Session = Depends(get_db),
 ):
     try:
-        location_service.get_location_by_id(db=db, location_id=comment.location_id)
-        new_comment = service.create_comment(db=db, comment=comment)
+        comment_data = schemas.CommentCreate(
+            user_name=user_name, rating=rating, comment=comment, location_id=location_id
+        )
+
+        location_service.get_location_by_id(db=db, location_id=location_id)
+
+        new_comment = await service.create_comment(
+            db=db, comment=comment_data, images=images
+        )
         return new_comment
     except (LocationNotFoundException, CommentRatingInvalidException):
         raise
@@ -44,7 +56,7 @@ def create_comment(
     **docs.GET_PENDING_COMMENTS_DOCS,
 )
 @dependencies.require_auth
-def get_comments_with_status_pending(
+async def get_comments_with_status_pending(
     skip: int = Query(0, ge=0, description="Número de registros a pular"),
     limit: int = Query(
         10, ge=1, le=10, description="Número máximo de registros a retornar"
