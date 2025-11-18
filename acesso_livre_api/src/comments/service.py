@@ -1,7 +1,6 @@
 import logging
 from datetime import UTC, datetime
 
-from httpx import get
 from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.orm import Session
 
@@ -21,18 +20,19 @@ from acesso_livre_api.src.comments.exceptions import (
     CommentUpdateException,
 )
 from acesso_livre_api.storage import upload_image
-from acesso_livre_api.storage.get_url import get_signed_url, get_signed_urls
+from acesso_livre_api.storage.get_url import get_signed_urls
 from fastapi import UploadFile
+from fastapi.concurrency import run_in_threadpool
 
 from acesso_livre_api.src.locations import models as location_models
 
 logger = logging.getLogger(__name__)
 
 
-def get_comment(db: Session, comment_id: int):
+async def get_comment(db: Session, comment_id: int):
     try:
-        comment = (
-            db.query(models.Comment)
+        comment = await run_in_threadpool(
+            lambda: db.query(models.Comment)
             .filter(models.Comment.id == comment_id, models.Comment.status == "approved")
             .first()
         )
@@ -43,7 +43,7 @@ def get_comment(db: Session, comment_id: int):
         if comment.images is None:
             comment.images = []
         else:
-            comment.images = get_signed_urls(comment.images)
+            comment.images = await get_signed_urls(comment.images)
 
         return comment
 
@@ -71,9 +71,9 @@ async def create_comment(
         data["images"] = image_list
 
         db_comment = models.Comment(**data, created_at=datetime.now(UTC))
-        db.add(db_comment)
-        db.commit()
-        db.refresh(db_comment)
+        await run_in_threadpool(db.add, db_comment)
+        await run_in_threadpool(db.commit)
+        await run_in_threadpool(db.refresh, db_comment)
 
         return db_comment
 
@@ -81,14 +81,14 @@ async def create_comment(
         raise
     except Exception as e:
         logger.error(f"Erro ao criar comentário: {str(e)}")
-        db.rollback()
+        await run_in_threadpool(db.rollback)
         raise CommentCreateException()
 
 
-def get_comments_with_status_pending(db: Session, skip: int = 0, limit: int = 10):
+async def get_comments_with_status_pending(db: Session, skip: int = 0, limit: int = 10):
     try:
-        comments = (
-            db.query(models.Comment)
+        comments = await run_in_threadpool(
+            lambda: db.query(models.Comment)
             .filter(models.Comment.status == "pending")
             .order_by(models.Comment.created_at.desc())
             .offset(skip)
@@ -103,7 +103,7 @@ def get_comments_with_status_pending(db: Session, skip: int = 0, limit: int = 10
             if comment.images is None:
                 comment.images = []
             else:
-                comment.images = get_signed_urls(comment.images)
+                comment.images = await get_signed_urls(comment.images)
         return comments
 
     except Exception as e:
@@ -111,7 +111,7 @@ def get_comments_with_status_pending(db: Session, skip: int = 0, limit: int = 10
         raise CommentGenericException()
 
 
-def update_comment_status(
+async def update_comment_status(
     db: Session, comment_id: int, new_status: schemas.CommentUpdateStatus
 ):
     try:
@@ -127,7 +127,11 @@ def update_comment_status(
         if status_value not in ["approved", "rejected"]:
             raise CommentStatusInvalidException(status_value)
 
-        comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
+        comment = await run_in_threadpool(
+            lambda: db.query(models.Comment)
+            .filter(models.Comment.id == comment_id)
+            .first()
+        )
         logger.info(f"Comentário encontrado: {comment is not None}")
 
         if not comment:
@@ -138,15 +142,15 @@ def update_comment_status(
             raise CommentNotPendingException(comment_id, comment.status)
 
         comment.status = status_value
-        db.commit()
-        db.refresh(comment)
+        await run_in_threadpool(db.commit)
+        await run_in_threadpool(db.refresh, comment)
 
         if status_value == "approved":
-            update_location_average_rating(db, comment.location_id, comment.rating)
+            await update_location_average_rating(db, comment.location_id, comment.rating)
 
             if comment.images and len(comment.images) > 0:
-                location = (
-                    db.query(location_models.Location)
+                location = await run_in_threadpool(
+                    lambda: db.query(location_models.Location)
                     .filter(location_models.Location.id == comment.location_id)
                     .first()
                 )
@@ -159,7 +163,7 @@ def update_comment_status(
                         if image_path not in location.images:
                             location.images.append(image_path)
 
-                db.commit()
+                await run_in_threadpool(db.commit)
 
         if comment.images is None:
             comment.images = []
@@ -179,26 +183,30 @@ def update_comment_status(
         logger.error(
             f"Erro de banco de dados ao atualizar comentário {comment_id}: {str(e)}"
         )
-        db.rollback()
+        await run_in_threadpool(db.rollback)
         raise CommentUpdateException()
     except Exception as e:
         logger.error(f"Erro inesperado ao atualizar comentário {comment_id}: {str(e)}")
-        db.rollback()
+        await run_in_threadpool(db.rollback)
         raise CommentUpdateException()
 
 
-def delete_comment(db: Session, comment_id: int, user_permissions: bool = True):
+async def delete_comment(db: Session, comment_id: int, user_permissions: bool = True):
     try:
         if not user_permissions:
             raise CommentPermissionDeniedException("excluir")
 
-        comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
+        comment = await run_in_threadpool(
+            lambda: db.query(models.Comment)
+            .filter(models.Comment.id == comment_id)
+            .first()
+        )
 
         if not comment:
             raise CommentNotFoundException()
 
-        db.delete(comment)
-        db.commit()
+        await run_in_threadpool(db.delete, comment)
+        await run_in_threadpool(db.commit)
 
         return True
 
@@ -208,18 +216,20 @@ def delete_comment(db: Session, comment_id: int, user_permissions: bool = True):
         logger.error(
             f"Erro de banco de dados ao excluir comentário {comment_id}: {str(e)}"
         )
-        db.rollback()
+        await run_in_threadpool(db.rollback)
         raise CommentDeleteException()
     except Exception as e:
         logger.error(f"Erro inesperado ao excluir comentário {comment_id}: {str(e)}")
-        db.rollback()
+        await run_in_threadpool(db.rollback)
         raise CommentDeleteException()
 
 
-def get_all_comments_by_location_id(location_id: int, skip: int, limit: int, db: Session):
+async def get_all_comments_by_location_id(
+    location_id: int, skip: int, limit: int, db: Session
+):
     try:
-        comments = (
-            db.query(models.Comment)
+        comments = await run_in_threadpool(
+            lambda: db.query(models.Comment)
             .filter(
                 models.Comment.location_id == location_id,
                 models.Comment.status == "approved",
@@ -237,7 +247,7 @@ def get_all_comments_by_location_id(location_id: int, skip: int, limit: int, db:
             if comment.images is None:
                 comment.images = []
             else:
-                comment.images = get_signed_urls(comment.images)
+                comment.images = await get_signed_urls(comment.images)
 
         return comments
 

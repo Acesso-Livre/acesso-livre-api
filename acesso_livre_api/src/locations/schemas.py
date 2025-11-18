@@ -1,8 +1,6 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
-
-from acesso_livre_api.storage.get_url import get_public_url
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class LocationBase(BaseModel):
@@ -105,6 +103,14 @@ class LocationsQueryParams(BaseModel):
 
 class LocationDeleteResponse(BaseModel):
     """Schema para resposta de exclusão de Location."""
+
+    message: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AccessibilityItemDeleteResponse(BaseModel):
+    """Schema para resposta de exclusão de Accessibility Item."""
 
     message: str
 

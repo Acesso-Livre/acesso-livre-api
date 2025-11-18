@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, MagicMock, AsyncMock, patch
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
@@ -98,79 +98,92 @@ class TestCreateComment:
 class TestGetComment:
     """Testes para get_comment."""
 
-    def test_get_comment_success(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_get_comment_success(self, mock_db):
         """Testa obtenção bem-sucedida de comentário."""
         mock_comment = Mock()
         mock_comment.images = None
 
         mock_db.query.return_value.filter.return_value.first.return_value = mock_comment
 
-        result = get_comment(mock_db, 1)
+        result = await get_comment(mock_db, 1)
 
         assert result == mock_comment
         assert mock_comment.images == []
 
-    def test_get_comment_not_found(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_get_comment_not_found(self, mock_db):
         """Testa comentário não encontrado."""
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
         with pytest.raises(CommentNotFoundException):
-            get_comment(mock_db, 1)
+            await get_comment(mock_db, 1)
 
-    def test_get_comment_generic_error(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_get_comment_generic_error(self, mock_db):
         """Testa erro genérico."""
         mock_db.query.side_effect = Exception("Generic error")
 
         with pytest.raises(CommentNotFoundException):
-            get_comment(mock_db, 1)
+            await get_comment(mock_db, 1)
 
 
 class TestGetCommentsWithStatusPending:
     """Testes para get_comments_with_status_pending."""
 
-    @patch("acesso_livre_api.src.comments.service.get_signed_urls")
-    def test_get_comments_pending_success(self, mock_get_signed_urls, mock_db):
+    @pytest.mark.asyncio
+    @patch(
+        "acesso_livre_api.src.comments.service.get_signed_urls", new_callable=AsyncMock
+    )
+    async def test_get_comments_pending_success(self, mock_get_signed_urls, mock_db):
         """Testa obtenção bem-sucedida de comentários pendentes."""
-        mock_get_signed_urls.side_effect = lambda x: x
-        mock_comments = [Mock(), Mock()]
-        mock_comments[0].images = None
-        mock_comments[1].images = ["image.jpg"]
+        mock_get_signed_urls.return_value = ["image.jpg"]
 
-        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = (
-            mock_comments
-        )
+        mock_comment1 = MagicMock()
+        mock_comment1.images = None
 
-        result = get_comments_with_status_pending(mock_db)
+        mock_comment2 = MagicMock()
+        mock_comment2.images = ["image.jpg"]
 
-        assert result == mock_comments
-        assert mock_comments[0].images == []
-        assert mock_comments[1].images == ["image.jpg"]
+        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [
+            mock_comment1,
+            mock_comment2,
+        ]
 
-    def test_get_comments_pending_empty(self, mock_db):
+        result = await get_comments_with_status_pending(mock_db, skip=0, limit=10)
+
+        assert result == [mock_comment1, mock_comment2]
+        assert result[0].images == []
+        assert result[1].images == ["image.jpg"]
+
+    @pytest.mark.asyncio
+    async def test_get_comments_pending_empty(self, mock_db):
         """Testa lista vazia de comentários pendentes."""
         mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = (
             []
         )
 
-        result = get_comments_with_status_pending(mock_db)
+        result = await get_comments_with_status_pending(mock_db, skip=0, limit=10)
 
         assert result == []
 
-    def test_get_comments_pending_error(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_get_comments_pending_error(self, mock_db):
         """Testa erro ao buscar comentários pendentes."""
         mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.side_effect = Exception(
             "DB Error"
         )
 
         with pytest.raises(CommentGenericException):
-            get_comments_with_status_pending(mock_db)
+            await get_comments_with_status_pending(mock_db, skip=0, limit=10)
 
 
 class TestUpdateCommentStatus:
     """Testes para update_comment_status."""
 
+    @pytest.mark.asyncio
     @patch("acesso_livre_api.src.comments.service.update_location_average_rating")
-    def test_update_comment_status_success(self, mock_update_avg, mock_db):
+    async def test_update_comment_status_success(self, mock_update_avg, mock_db):
         """Testa atualização bem-sucedida de status."""
         mock_comment = Mock()
         mock_comment.status = "pending"
@@ -180,31 +193,34 @@ class TestUpdateCommentStatus:
 
         update_data = schemas.CommentUpdateStatus(status="approved")
 
-        result = update_comment_status(mock_db, 1, update_data)
+        result = await update_comment_status(mock_db, 1, update_data)
 
         assert result == mock_comment
         assert mock_comment.status == "approved"
         assert mock_comment.images == []
         mock_db.commit.assert_called_once()
 
-    def test_update_comment_status_invalid_status(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_update_comment_status_invalid_status(self, mock_db):
         """Testa status inválido."""
         mock_update_data = Mock()
         mock_update_data.status.value = "invalid_status"
 
         with pytest.raises(CommentStatusInvalidException):
-            update_comment_status(mock_db, 1, mock_update_data)
+            await update_comment_status(mock_db, 1, mock_update_data)
 
-    def test_update_comment_status_not_found(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_update_comment_status_not_found(self, mock_db):
         """Testa comentário não encontrado."""
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
         update_data = schemas.CommentUpdateStatus(status="approved")
 
         with pytest.raises(CommentNotFoundException):
-            update_comment_status(mock_db, 1, update_data)
+            await update_comment_status(mock_db, 1, update_data)
 
-    def test_update_comment_status_not_pending(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_update_comment_status_not_pending(self, mock_db):
         """Testa comentário que não está pendente."""
         mock_comment = Mock()
         mock_comment.status = "approved"
@@ -214,9 +230,10 @@ class TestUpdateCommentStatus:
         update_data = schemas.CommentUpdateStatus(status="rejected")
 
         with pytest.raises(CommentNotPendingException):
-            update_comment_status(mock_db, 1, update_data)
+            await update_comment_status(mock_db, 1, update_data)
 
-    def test_update_comment_status_db_error(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_update_comment_status_db_error(self, mock_db):
         """Testa erro de banco de dados."""
         mock_comment = Mock()
         mock_comment.status = "pending"
@@ -227,37 +244,41 @@ class TestUpdateCommentStatus:
         update_data = schemas.CommentUpdateStatus(status="approved")
 
         with pytest.raises(CommentUpdateException):
-            update_comment_status(mock_db, 1, update_data)
+            await update_comment_status(mock_db, 1, update_data)
 
 
 class TestDeleteComment:
     """Testes para delete_comment."""
 
-    def test_delete_comment_success(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_delete_comment_success(self, mock_db):
         """Testa exclusão bem-sucedida."""
         mock_comment = Mock()
 
         mock_db.query.return_value.filter.return_value.first.return_value = mock_comment
 
-        result = delete_comment(mock_db, 1, True)
+        result = await delete_comment(mock_db, 1, True)
 
         assert result is True
         mock_db.delete.assert_called_once_with(mock_comment)
         mock_db.commit.assert_called_once()
 
-    def test_delete_comment_not_found(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_delete_comment_not_found(self, mock_db):
         """Testa comentário não encontrado."""
         mock_db.query.return_value.filter.return_value.first.return_value = None
 
         with pytest.raises(CommentNotFoundException):
-            delete_comment(mock_db, 1, True)
+            await delete_comment(mock_db, 1, True)
 
-    def test_delete_comment_no_permission(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_delete_comment_no_permission(self, mock_db):
         """Testa falta de permissão."""
         with pytest.raises(CommentPermissionDeniedException):
-            delete_comment(mock_db, 1, False)
+            await delete_comment(mock_db, 1, False)
 
-    def test_delete_comment_db_error(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_delete_comment_db_error(self, mock_db):
         """Testa erro de banco de dados."""
         mock_comment = Mock()
 
@@ -265,45 +286,52 @@ class TestDeleteComment:
         mock_db.commit.side_effect = SQLAlchemyError("DB Error")
 
         with pytest.raises(CommentDeleteException):
-            delete_comment(mock_db, 1, True)
+            await delete_comment(mock_db, 1, True)
 
 
 class TestGetAllCommentsByLocationId:
     """Testes para get_all_comments_by_location_id."""
 
-    @patch("acesso_livre_api.src.comments.service.get_signed_urls")
-    def test_get_comments_by_location_success(self, mock_get_signed_urls, mock_db):
+    @pytest.mark.asyncio
+    @patch(
+        "acesso_livre_api.src.comments.service.get_signed_urls", new_callable=AsyncMock
+    )
+    async def test_get_comments_by_location_success(self, mock_get_signed_urls, mock_db):
         """Testa obtenção bem-sucedida de comentários por localização."""
-        mock_get_signed_urls.side_effect = lambda x: x
-        mock_comments = [Mock(), Mock()]
-        mock_comments[0].images = None
-        mock_comments[1].images = ["image.jpg"]
+        mock_get_signed_urls.return_value = ["image.jpg"]
+        mock_comment1 = MagicMock()
+        mock_comment1.images = None
+        mock_comment2 = MagicMock()
+        mock_comment2.images = ["image.jpg"]
 
-        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = (
-            mock_comments
-        )
+        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [
+            mock_comment1,
+            mock_comment2,
+        ]
 
-        result = get_all_comments_by_location_id(1, 0, 10, mock_db)
+        result = await get_all_comments_by_location_id(1, 0, 10, mock_db)
 
-        assert result == mock_comments
-        assert mock_comments[0].images == []
-        assert mock_comments[1].images == ["image.jpg"]
+        assert result == [mock_comment1, mock_comment2]
+        assert result[0].images == []
+        assert result[1].images == ["image.jpg"]
 
-    def test_get_comments_by_location_empty(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_get_comments_by_location_empty(self, mock_db):
         """Testa lista vazia."""
         mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = (
             []
         )
 
-        result = get_all_comments_by_location_id(1, 0, 10, mock_db)
+        result = await get_all_comments_by_location_id(1, 0, 10, mock_db)
 
         assert result == []
 
-    def test_get_comments_by_location_error(self, mock_db):
+    @pytest.mark.asyncio
+    async def test_get_comments_by_location_error(self, mock_db):
         """Testa erro genérico."""
         mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.side_effect = Exception(
             "DB Error"
         )
 
         with pytest.raises(CommentGenericException):
-            get_all_comments_by_location_id(1, 0, 10, mock_db)
+            await get_all_comments_by_location_id(1, 0, 10, mock_db)

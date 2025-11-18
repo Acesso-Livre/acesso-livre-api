@@ -4,8 +4,6 @@ Contém todas as definições de documentação OpenAPI/Swagger
 para manter o código do router limpo e organizado.
 """
 
-from typing import Any, Dict
-
 # Documentação para o endpoint POST / (criar location)
 CREATE_LOCATION_DOCS = {
     "summary": "Criar novo local",
@@ -79,7 +77,6 @@ CREATE_LOCATION_DOCS = {
             },
         },
     },
-    "tags": ["Locations"],
 }
 
 # Documentação para o endpoint GET / (listar locations)
@@ -119,7 +116,6 @@ LIST_LOCATIONS_DOCS = {
             },
         },
     },
-    "tags": ["Locations"],
 }
 
 # Documentação para o endpoint GET /{location_id} (obter location por ID)
@@ -171,7 +167,6 @@ GET_LOCATION_DOCS = {
             },
         },
     },
-    "tags": ["Locations"],
 }
 
 # Documentação para o endpoint PATCH /{location_id} (atualizar location)
@@ -238,7 +233,6 @@ UPDATE_LOCATION_DOCS = {
             },
         },
     },
-    "tags": ["Locations"],
 }
 
 # Documentação para o endpoint DELETE /{location_id} (deletar location)
@@ -273,7 +267,6 @@ DELETE_LOCATION_DOCS = {
             },
         },
     },
-    "tags": ["Locations"],
 }
 
 # Documentação para o endpoint POST /accessibility-items/ (criar accessibility item)
@@ -321,7 +314,6 @@ CREATE_ACCESSIBILITY_ITEM_DOCS = {
             },
         },
     },
-    "tags": ["Accessibility Items"],
 }
 
 # Documentação para o endpoint GET /accessibility-items/ (listar accessibility items)
@@ -362,7 +354,6 @@ LIST_ACCESSIBILITY_ITEMS_DOCS = {
             },
         },
     },
-    "tags": ["Accessibility Items"],
 }
 
 # Documentação para o endpoint GET /accessibility-items/{item_id} (obter accessibility item por ID)
@@ -397,5 +388,4 @@ GET_ACCESSIBILITY_ITEM_DOCS = {
             },
         },
     },
-    "tags": ["Accessibility Items"],
 }

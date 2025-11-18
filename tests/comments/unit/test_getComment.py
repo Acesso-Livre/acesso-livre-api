@@ -1,12 +1,13 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch, AsyncMock
 
 import pytest
 
 from acesso_livre_api.src.comments import exceptions, service
 
 
+@pytest.mark.asyncio
 @patch("acesso_livre_api.src.comments.service.get_signed_urls")
-def test_get_comment_with_status_pending_success(mock_get_signed_urls):
+async def test_get_comment_with_status_pending_success(mock_get_signed_urls):
     db_mock = MagicMock()
     mock_get_signed_urls.side_effect = lambda x: x  # Retorna as imagens como estão
 
@@ -33,7 +34,7 @@ def test_get_comment_with_status_pending_success(mock_get_signed_urls):
         ),
     ]
 
-    comments = service.get_comments_with_status_pending(db_mock)
+    comments = await service.get_comments_with_status_pending(db_mock)
 
     assert len(comments) == 2
     assert comments[0].id == 1
@@ -42,8 +43,9 @@ def test_get_comment_with_status_pending_success(mock_get_signed_urls):
     assert comments[1].status == "pending"
 
 
+@pytest.mark.asyncio
 @patch("acesso_livre_api.src.comments.service.get_signed_urls")
-def test_get_comment_with_id(mock_get_signed_urls):
+async def test_get_comment_with_id(mock_get_signed_urls):
     db_mock = MagicMock()
     mock_get_signed_urls.side_effect = lambda x: x  # Retorna as imagens como estão
     comment_id = 1
@@ -57,7 +59,7 @@ def test_get_comment_with_id(mock_get_signed_urls):
     )
     db_mock.query().filter().first.return_value = expected_comment
 
-    comment = service.get_comment(db_mock, comment_id)
+    comment = await service.get_comment(db_mock, comment_id)
 
     assert comment.id == expected_comment.id
     assert comment.user_name == expected_comment.user_name
@@ -67,25 +69,28 @@ def test_get_comment_with_id(mock_get_signed_urls):
     assert comment.created_at == expected_comment.created_at
 
 
-def test_get_comment_not_found():
+@pytest.mark.asyncio
+async def test_get_comment_not_found():
     db_mock = MagicMock()
     comment_id = 999
     db_mock.query().filter().first.return_value = None
 
     with pytest.raises(exceptions.CommentNotFoundException):
-        service.get_comment(db_mock, comment_id)
+        await service.get_comment(db_mock, comment_id)
 
 
-def test_get_comment_generic_exception():
+@pytest.mark.asyncio
+async def test_get_comment_generic_exception():
     db_mock = MagicMock()
     comment_id = 1
     db_mock.query().filter().first.side_effect = Exception("Database error")
 
     with pytest.raises(exceptions.CommentNotFoundException):
-        service.get_comment(db_mock, comment_id)
+        await service.get_comment(db_mock, comment_id)
 
 
-def test_get_comment_images_none():
+@pytest.mark.asyncio
+async def test_get_comment_images_none():
     db_mock = MagicMock()
     comment_id = 1
     expected_comment = MagicMock(
@@ -98,7 +103,7 @@ def test_get_comment_images_none():
     )
     db_mock.query().filter().first.return_value = expected_comment
 
-    comment = service.get_comment(db_mock, comment_id)
+    comment = await service.get_comment(db_mock, comment_id)
 
     assert comment.id == expected_comment.id
     assert comment.images == []  # Verifica se as imagens foram definidas como lista vazia
@@ -108,38 +113,49 @@ def test_get_comment_images_none():
     assert comment.created_at == expected_comment.created_at
 
 
-@patch("acesso_livre_api.src.comments.service.get_signed_urls")
-def test_get_all_comments_by_location_id_success(mock_get_signed_urls):
+@pytest.mark.asyncio
+@patch("acesso_livre_api.src.comments.service.get_signed_urls", new_callable=AsyncMock)
+async def test_get_all_comments_by_location_id_success(mock_get_signed_urls):
+    async def mock_get_signed_urls_side_effect(images):
+        if images:
+            return ["https://example.com/image1.jpg"]
+        else:
+            return []
+
+    mock_get_signed_urls.side_effect = mock_get_signed_urls_side_effect
+
     db_mock = MagicMock()
-    mock_get_signed_urls.side_effect = lambda x: x  # Retorna as imagens como estão
     location_id = 123
     skip = 0
     limit = 10
 
-    db_mock.query().filter().order_by().offset().limit().all.return_value = [
-        MagicMock(
-            id=1,
-            user_name="João Silva",
-            rating=5,
-            comment="Excelente local, muito acessível!",
-            location_id=location_id,
-            status="approved",
-            images=["https://example.com/image1.jpg"],
-            created_at="2023-10-01T12:00:00Z",
-        ),
-        MagicMock(
-            id=2,
-            user_name="Maria Santos",
-            rating=4,
-            comment="Bom local, mas poderia melhorar a sinalização.",
-            location_id=location_id,
-            status="pending",
-            images=[],
-            created_at="2023-10-02T14:30:00Z",
-        ),
-    ]
+    comment1 = MagicMock()
+    comment1.id = 1
+    comment1.user_name = "João Silva"
+    comment1.rating = 5
+    comment1.comment = "Excelente local, muito acessível!"
+    comment1.location_id = location_id
+    comment1.status = "approved"
+    comment1.images = ["image1.jpg"]  # Original image path
+    comment1.created_at = "2023-10-01T12:00:00Z"
 
-    comments = service.get_all_comments_by_location_id(location_id, skip, limit, db_mock)
+    comment2 = MagicMock()
+    comment2.id = 2
+    comment2.user_name = "Maria Santos"
+    comment2.rating = 4
+    comment2.comment = "Bom local, mas poderia melhorar a sinalização."
+    comment2.location_id = location_id
+    comment2.status = "approved"
+    comment2.images = []
+    comment2.created_at = "2023-10-02T14:30:00Z"
+
+    # Mock run_in_threadpool to return our test data
+    with patch("acesso_livre_api.src.comments.service.run_in_threadpool") as mock_run:
+        mock_run.return_value = [comment1, comment2]
+
+        comments = await service.get_all_comments_by_location_id(
+            location_id, skip, limit, db_mock
+        )
 
     assert len(comments) == 2
     assert comments[0].id == 1
@@ -148,6 +164,7 @@ def test_get_all_comments_by_location_id_success(mock_get_signed_urls):
     assert comments[0].comment == "Excelente local, muito acessível!"
     assert comments[0].location_id == location_id
     assert comments[0].status == "approved"
+    # After processing, images should be the result of get_signed_urls
     assert comments[0].images == ["https://example.com/image1.jpg"]
     assert comments[0].created_at == "2023-10-01T12:00:00Z"
 
@@ -156,64 +173,78 @@ def test_get_all_comments_by_location_id_success(mock_get_signed_urls):
     assert comments[1].rating == 4
     assert comments[1].comment == "Bom local, mas poderia melhorar a sinalização."
     assert comments[1].location_id == location_id
-    assert comments[1].status == "pending"
+    assert comments[1].status == "approved"
     assert comments[1].images == []
     assert comments[1].created_at == "2023-10-02T14:30:00Z"
 
 
-def test_get_all_comments_by_location_id_empty_list():
+@pytest.mark.asyncio
+async def test_get_all_comments_by_location_id_empty_list():
     db_mock = MagicMock()
     location_id = 123
     skip = 0
     limit = 10
 
-    db_mock.query().filter().order_by().offset().limit().all.return_value = []
+    # Mock run_in_threadpool to return empty list
+    with patch("acesso_livre_api.src.comments.service.run_in_threadpool") as mock_run:
+        mock_run.return_value = []
 
-    comments = service.get_all_comments_by_location_id(location_id, skip, limit, db_mock)
+        comments = await service.get_all_comments_by_location_id(
+            location_id, skip, limit, db_mock
+        )
 
     assert comments == []
 
 
-def test_get_all_comments_by_location_id_with_pagination():
+@pytest.mark.asyncio
+async def test_get_all_comments_by_location_id_with_pagination():
     db_mock = MagicMock()
     location_id = 123
     skip = 5
     limit = 3
 
-    db_mock.query().filter().order_by().offset().limit().all.return_value = [
-        MagicMock(
-            id=6,
-            user_name="User 6",
-            rating=3,
-            comment="Comment 6",
-            location_id=location_id,
-            status="approved",
-            images=[],
-            created_at="2023-10-06T12:00:00Z",
-        )
-    ]
+    comment_mock = MagicMock(
+        id=6,
+        user_name="User 6",
+        rating=3,
+        comment="Comment 6",
+        location_id=location_id,
+        status="approved",
+        images=[],
+        created_at="2023-10-06T12:00:00Z",
+    )
 
-    comments = service.get_all_comments_by_location_id(location_id, skip, limit, db_mock)
+    # Mock run_in_threadpool to return our test data
+    with patch("acesso_livre_api.src.comments.service.run_in_threadpool") as mock_run:
+        mock_run.return_value = [comment_mock]
+
+        comments = await service.get_all_comments_by_location_id(
+            location_id, skip, limit, db_mock
+        )
 
     assert len(comments) == 1
     assert comments[0].id == 6
 
 
-def test_get_all_comments_by_location_id_generic_exception():
+@pytest.mark.asyncio
+async def test_get_all_comments_by_location_id_generic_exception():
     db_mock = MagicMock()
     location_id = 123
     skip = 0
     limit = 10
 
-    db_mock.query().filter().order_by().offset().limit().all.side_effect = Exception(
-        "Database error"
-    )
+    # Mock run_in_threadpool to raise an exception
+    with patch("acesso_livre_api.src.comments.service.run_in_threadpool") as mock_run:
+        mock_run.side_effect = Exception("Database error")
 
-    with pytest.raises(exceptions.CommentGenericException):
-        service.get_all_comments_by_location_id(location_id, skip, limit, db_mock)
+        with pytest.raises(exceptions.CommentGenericException):
+            await service.get_all_comments_by_location_id(
+                location_id, skip, limit, db_mock
+            )
 
 
-def test_get_all_comments_by_location_id_images_none():
+@pytest.mark.asyncio
+async def test_get_all_comments_by_location_id_images_none():
     db_mock = MagicMock()
     location_id = 123
     skip = 0
@@ -230,9 +261,13 @@ def test_get_all_comments_by_location_id_images_none():
         created_at="2023-10-01T12:00:00Z",
     )
 
-    db_mock.query().filter().order_by().offset().limit().all.return_value = [comment_mock]
+    # Mock run_in_threadpool to return our test data
+    with patch("acesso_livre_api.src.comments.service.run_in_threadpool") as mock_run:
+        mock_run.return_value = [comment_mock]
 
-    comments = service.get_all_comments_by_location_id(location_id, skip, limit, db_mock)
+        comments = await service.get_all_comments_by_location_id(
+            location_id, skip, limit, db_mock
+        )
 
     assert len(comments) == 1
     assert (
