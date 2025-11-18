@@ -198,8 +198,10 @@ def update_location_average_rating(db: Session, location_id: int, new_value: flo
         )
         current_avg = location.avg_rating or 0.0
 
-        location.avg_rating = ((current_avg * count_approved) + new_value) / (
-            count_approved + 1
+        count_previous = count_approved - 1
+
+        location.avg_rating = ((current_avg * count_previous) + new_value) / (
+            count_approved
         )
 
         db.commit()
