@@ -60,10 +60,19 @@ class AccessibilityItemResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AccessibilityItemCreateResponse(BaseModel):
+    """Schema para resposta de criação de item de acessibilidade (sem URL)."""
+
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class AccessibilityItemResponseList(BaseModel):
     """Schema para lista de itens de acessibilidade."""
 
-    accessibility_items: List[AccessibilityItemResponse] = Field(default=[])
+    accessibility_items: List[str] = Field(default=[])
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -94,6 +103,14 @@ class LocationsQueryParams(BaseModel):
 
 class LocationDeleteResponse(BaseModel):
     """Schema para resposta de exclusão de Location."""
+
+    message: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AccessibilityItemDeleteResponse(BaseModel):
+    """Schema para resposta de exclusão de Accessibility Item."""
 
     message: str
 

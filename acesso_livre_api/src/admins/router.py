@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 from . import service, schemas, exceptions, dependencies
 from ..database import get_db
@@ -23,27 +23,27 @@ logger = logging.getLogger(__name__)
     status_code=status.HTTP_201_CREATED,
     **REGISTER_DOCS,
 )
-def register_admin(admin: schemas.AdminCreate, db: Session = Depends(get_db)):
-    service.create_admin(db, admin)
+async def register_admin(admin: schemas.AdminCreate, db: AsyncSession = Depends(get_db)):
+    await service.create_admin(db, admin)
     return {"status": "success"}
 
 
 @router.post("/login", response_model=schemas.LoginResponse, **LOGIN_DOCS)
-def login(
+async def login(
     admin: schemas.LoginRequest,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    admin = service.authenticate_admin(db, admin.email, admin.password)
+    admin = await service.authenticate_admin(db, admin.email, admin.password)
     if not admin:
         raise exceptions.AdminAuthenticationFailedException()
 
-    access_token = service.create_access_token(data={"sub": admin.email})
+    access_token = service.create_access_token({"sub": admin.email})
     return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.get("/check-token", **CHECK_TOKEN_DOCS)
 @dependencies.require_auth
-def check_token(token: str = Depends(oauth2_scheme)):
+async def check_token(token: str = Depends(oauth2_scheme)):
     if not token:
         return {"valid": False, "message": "Token não fornecido"}
 
@@ -56,8 +56,10 @@ def check_token(token: str = Depends(oauth2_scheme)):
     response_model=schemas.ResetPasswordResponse,
     **FORGOT_PASSWORD_DOCS,
 )
-def forgot_password(request: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
-    return service.request_password_reset(db, request.email)
+async def forgot_password(
+    request: schemas.ResetPasswordRequest, db: AsyncSession = Depends(get_db)
+):
+    return await service.request_password_reset(db, request.email)
 
 
 @router.post(
@@ -65,5 +67,9 @@ def forgot_password(request: schemas.ResetPasswordRequest, db: Session = Depends
     response_model=schemas.ChangePasswordResponse,
     **PASSWORD_RESET_DOCS,
 )
-def password_reset(request: schemas.ChangePasswordRequest, db: Session = Depends(get_db)):
-    return service.password_reset(db, request.token, request.email, request.new_password)
+async def password_reset(
+    request: schemas.ChangePasswordRequest, db: AsyncSession = Depends(get_db)
+):
+    return await service.password_reset(
+        db, request.token, request.email, request.new_password
+    )
