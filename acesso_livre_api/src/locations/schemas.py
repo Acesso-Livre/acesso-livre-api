@@ -9,6 +9,8 @@ class LocationBase(BaseModel):
     id: int
     name: str = Field(..., min_length=1, max_length=200)
     description: str = Field(..., min_length=1)
+    top: float
+    left: float
 
     model_config = ConfigDict(from_attributes=True)
 
