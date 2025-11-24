@@ -103,7 +103,9 @@ async def get_accessibility_item_by_id(db: AsyncSession, item_id: int):
         raise exceptions.LocationGenericException()
 
 
-async def get_location_by_id(db: AsyncSession, location_id: int):
+async def get_location_by_id(
+    db: AsyncSession, location_id: int, skip: int = 0, limit: int = 20
+):
     try:
         stmt = (
             select(models.Location)
@@ -116,13 +118,47 @@ async def get_location_by_id(db: AsyncSession, location_id: int):
         if not location:
             raise exceptions.LocationNotFoundException()
 
-        if location.images is None:
-            location.images = []
-        else:
-            location.images = await get_signed_urls(location.images)
-
         if location.avg_rating is None:
             location.avg_rating = 0.0
+
+        # Buscar comentários aprovados da localização com paginação
+        stmt_comments = (
+            select(comment_models.Comment)
+            .where(
+                comment_models.Comment.location_id == location_id,
+                comment_models.Comment.status == "approved",
+            )
+            .order_by(comment_models.Comment.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        result_comments = await db.execute(stmt_comments)
+        comments = result_comments.scalars().all()
+
+        # Coletar todas as imagens dos comentários aprovados para a localização
+        all_location_images = []
+        if location.images:
+            all_location_images.extend(location.images)
+
+        # Processar imagens dos comentários com signed URLs e coletar imagens
+        for comment in comments:
+            if comment.images is None:
+                comment.images = []
+            else:
+                # Adicionar imagens do comentário às imagens da localização
+                for img in comment.images:
+                    if img not in all_location_images:
+                        all_location_images.append(img)
+                # Processar signed URLs para o comentário
+                comment.images = await get_signed_urls(comment.images)
+
+        # Processar signed URLs para todas as imagens da localização
+        location.images = (
+            await get_signed_urls(all_location_images) if all_location_images else []
+        )
+
+        # Adicionar comentários à localização
+        location.comments = comments
 
         return location
 

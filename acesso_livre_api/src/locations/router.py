@@ -83,9 +83,16 @@ async def list_all_locations(
     **docs.GET_LOCATION_DOCS,
 )
 async def get_location_by_id(
-    location_id: int = Path(..., gt=0), db: AsyncSession = Depends(get_db)
+    location_id: int = Path(..., gt=0),
+    skip: int = Query(0, ge=0, description="Número de comentários a pular"),
+    limit: int = Query(
+        20, ge=1, le=100, description="Número máximo de comentários a retornar"
+    ),
+    db: AsyncSession = Depends(get_db),
 ):
-    location = await service.get_location_by_id(db=db, location_id=location_id)
+    location = await service.get_location_by_id(
+        db=db, location_id=location_id, skip=skip, limit=limit
+    )
     return location
 
 
