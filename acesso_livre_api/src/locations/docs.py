@@ -121,7 +121,7 @@ LIST_LOCATIONS_DOCS = {
 # Documentação para o endpoint GET /{location_id} (obter location por ID)
 GET_LOCATION_DOCS = {
     "summary": "Obter local por ID",
-    "description": "Retorna os detalhes completos de um local específico incluindo itens de acessibilidade.",
+    "description": "Retorna os detalhes completos de um local específico incluindo itens de acessibilidade, imagens e comentários aprovados com paginação.",
     "responses": {
         200: {
             "description": "Local encontrado",
@@ -132,8 +132,9 @@ GET_LOCATION_DOCS = {
                         "name": "Shopping Center Norte",
                         "description": "Grande centro comercial com acesso para cadeirantes",
                         "images": [
-                            "https://example.com/image1.jpg",
-                            "https://example.com/image2.jpg",
+                            "https://storage.example.com/image1.jpg",
+                            "https://storage.example.com/image2.jpg",
+                            "https://storage.example.com/comment-image1.jpg",
                         ],
                         "avg_rating": 4.2,
                         "top": 45.2,
@@ -142,12 +143,36 @@ GET_LOCATION_DOCS = {
                             {
                                 "id": 1,
                                 "name": "Rampa de acesso",
-                                "icon_url": "https://example.com/ramp-icon.svg",
+                                "icon_url": "https://storage.example.com/ramp-icon.svg",
                             },
                             {
                                 "id": 2,
                                 "name": "Elevador",
-                                "icon_url": "https://example.com/elevator-icon.svg",
+                                "icon_url": "https://storage.example.com/elevator-icon.svg",
+                            },
+                        ],
+                        "comments": [
+                            {
+                                "id": 1,
+                                "user_name": "João Silva",
+                                "rating": 5,
+                                "comment": "Excelente acessibilidade!",
+                                "location_id": 1,
+                                "status": "approved",
+                                "images": [
+                                    "https://storage.example.com/comment-image1.jpg"
+                                ],
+                                "created_at": "2024-01-15T10:30:00Z",
+                            },
+                            {
+                                "id": 2,
+                                "user_name": "Maria Santos",
+                                "rating": 4,
+                                "comment": "Bom, mas pode melhorar",
+                                "location_id": 1,
+                                "status": "approved",
+                                "images": [],
+                                "created_at": "2024-01-14T15:20:00Z",
                             },
                         ],
                     }

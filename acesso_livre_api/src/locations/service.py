@@ -1,8 +1,9 @@
 import logging
 
 from sqlalchemy import exc as sqlalchemy_exc, select
+from acesso_livre_api.src.comments.schemas import CommentResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import selectinload
 from acesso_livre_api.src.comments import models as comment_models
 from acesso_livre_api.src.locations import exceptions, models, schemas
 from acesso_livre_api.storage.get_url import get_signed_url, get_signed_urls
@@ -118,10 +119,10 @@ async def get_location_by_id(
         if not location:
             raise exceptions.LocationNotFoundException()
 
+        await db.refresh(location, attribute_names=["images", "avg_rating"])
         location_images_raw = list(location.images) if location.images else []
         location_avg_rating = location.avg_rating if location.avg_rating else 0.0
 
-        # Buscar comentários aprovados da localização com paginação
         stmt_comments = (
             select(comment_models.Comment)
             .where(
@@ -135,41 +136,58 @@ async def get_location_by_id(
         result_comments = await db.execute(stmt_comments)
         comments = result_comments.scalars().all()
 
-        # Coletar todas as imagens dos comentários aprovados para a localização
         all_location_images = list(location_images_raw)
+        comments_response = []
 
-        # Coletar imagens dos comentários (antes de processar signed URLs)
-        comments_data = []
         for comment in comments:
+            await db.refresh(comment, attribute_names=["images"])
             comment_images_raw = list(comment.images) if comment.images else []
 
-            # Adicionar imagens do comentário às imagens da localização
             for img in comment_images_raw:
                 if img not in all_location_images:
                     all_location_images.append(img)
 
-            # Guardar dados do comentário para processar depois
-            comments_data.append({"comment": comment, "images_raw": comment_images_raw})
+            comment_images_signed = (
+                await get_signed_urls(comment_images_raw) if comment_images_raw else []
+            )
 
-        # Processar signed URLs para todas as imagens da localização
-        location.images = (
+            comments_response.append(
+                CommentResponse(
+                    id=comment.id,
+                    user_name=comment.user_name,
+                    rating=comment.rating,
+                    comment=comment.comment,
+                    location_id=comment.location_id,
+                    status=comment.status,
+                    images=comment_images_signed,
+                    created_at=comment.created_at,
+                )
+            )
+
+        location_images_signed = (
             await get_signed_urls(all_location_images) if all_location_images else []
         )
-        location.avg_rating = location_avg_rating
 
-        # Processar imagens dos comentários com signed URLs
-        processed_comments = []
-        for data in comments_data:
-            comment = data["comment"]
-            comment.images = (
-                await get_signed_urls(data["images_raw"]) if data["images_raw"] else []
-            )
-            processed_comments.append(comment)
+        response_data = schemas.LocationDetailResponse(
+            id=location.id,
+            name=location.name,
+            description=location.description,
+            top=location.top,
+            left=location.left,
+            images=location_images_signed,
+            avg_rating=location_avg_rating,
+            accessibility_items=[
+                schemas.AccessibilityItemResponse(
+                    id=item.id,
+                    name=item.name,
+                    icon_url=await get_signed_url(item.icon_url) if item.icon_url else "",
+                )
+                for item in location.accessibility_items
+            ],
+            comments=comments_response,
+        )
 
-        # Adicionar comentários à localização
-        location.comments = processed_comments
-
-        return location
+        return response_data
 
     except exceptions.LocationNotFoundException:
         raise
