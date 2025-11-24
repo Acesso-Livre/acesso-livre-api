@@ -84,9 +84,16 @@ async def list_all_locations(
 )
 async def get_location_by_id(
     location_id: int = Path(..., gt=0),
-    skip: int = Query(0, ge=0, description="Número de comentários a pular"),
+    skip: int = Query(
+        0,
+        ge=0,
+        description="Número de comentários a pular (não retornado, usado apenas para consolidar imagens)",
+    ),
     limit: int = Query(
-        20, ge=1, le=100, description="Número máximo de comentários a retornar"
+        20,
+        ge=1,
+        le=100,
+        description="Número máximo de comentários a considerar para consolidar imagens",
     ),
     db: AsyncSession = Depends(get_db),
 ):

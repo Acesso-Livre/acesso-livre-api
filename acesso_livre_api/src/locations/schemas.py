@@ -1,7 +1,6 @@
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
-from acesso_livre_api.src.comments.schemas import CommentResponse
 
 
 class LocationBase(BaseModel):
@@ -94,7 +93,6 @@ class LocationDetailResponse(LocationBase):
     images: List[str] = Field(default=[])
     avg_rating: float = Field(default=0.0, ge=0.0, le=5.0)
     accessibility_items: List[AccessibilityItemResponse] = Field(default=[])
-    comments: List[CommentResponse] = Field(default=[])
 
 
 class LocationsQueryParams(BaseModel):

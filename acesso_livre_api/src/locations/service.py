@@ -1,7 +1,6 @@
 import logging
 
 from sqlalchemy import exc as sqlalchemy_exc, select
-from acesso_livre_api.src.comments.schemas import CommentResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from acesso_livre_api.src.comments import models as comment_models
@@ -137,7 +136,6 @@ async def get_location_by_id(
         comments = result_comments.scalars().all()
 
         all_location_images = list(location_images_raw)
-        comments_response = []
 
         for comment in comments:
             await db.refresh(comment, attribute_names=["images"])
@@ -147,25 +145,22 @@ async def get_location_by_id(
                 if img not in all_location_images:
                     all_location_images.append(img)
 
-            comment_images_signed = (
-                await get_signed_urls(comment_images_raw) if comment_images_raw else []
-            )
-
-            comments_response.append(
-                CommentResponse(
-                    id=comment.id,
-                    user_name=comment.user_name,
-                    rating=comment.rating,
-                    comment=comment.comment,
-                    location_id=comment.location_id,
-                    status=comment.status,
-                    images=comment_images_signed,
-                    created_at=comment.created_at,
-                )
-            )
-
         location_images_signed = (
             await get_signed_urls(all_location_images) if all_location_images else []
+        )
+
+        accessibility_items_icons = [
+            item.icon_url for item in location.accessibility_items if item.icon_url
+        ]
+        accessibility_items_signed_urls = (
+            await get_signed_urls(accessibility_items_icons)
+            if accessibility_items_icons
+            else []
+        )
+
+        # Criar um mapping de icon_url para signed_url
+        icon_url_mapping = dict(
+            zip(accessibility_items_icons, accessibility_items_signed_urls)
         )
 
         response_data = schemas.LocationDetailResponse(
@@ -180,11 +175,10 @@ async def get_location_by_id(
                 schemas.AccessibilityItemResponse(
                     id=item.id,
                     name=item.name,
-                    icon_url=await get_signed_url(item.icon_url) if item.icon_url else "",
+                    icon_url=icon_url_mapping.get(item.icon_url, ""),
                 )
                 for item in location.accessibility_items
             ],
-            comments=comments_response,
         )
 
         return response_data
