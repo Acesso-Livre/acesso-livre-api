@@ -7,6 +7,7 @@ from acesso_livre_api.src.comments import docs, schemas, service
 from acesso_livre_api.src.comments.exceptions import (
     CommentCreateException,
     CommentDeleteException,
+    CommentGenericException,
     CommentNotFoundException,
     CommentNotPendingException,
     CommentPermissionDeniedException,
@@ -138,6 +139,33 @@ async def delete_comment_with_id(
         raise
     except Exception:
         raise CommentDeleteException()
+
+
+@router.get(
+    "/recent",
+    response_model=schemas.RecentCommentsListResponse,
+    **docs.GET_RECENT_COMMENTS_DOCS,
+)
+async def get_recent_comments(
+    limit: int = Query(
+        3, ge=1, le=10, description="Número máximo de comentários recentes a retornar"
+    ),
+    db: Session = Depends(get_db),
+):
+    try:
+        db_comments = await service.get_recent_comments(db, limit)
+        comments = [
+            schemas.RecentCommentResponse(
+                location_name=comment.location.name,
+                location_rating=comment.location.avg_rating or 0.0,
+                user_name=comment.user_name,
+                description=comment.comment,
+            )
+            for comment in db_comments
+        ]
+        return schemas.RecentCommentsListResponse(comments=comments)
+    except Exception as e:
+        raise CommentGenericException()
 
 
 @router.get(

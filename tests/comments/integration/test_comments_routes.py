@@ -396,3 +396,130 @@ async def test_read_pending_comment_fails(client: AsyncClient, created_location)
     response = await client.get(f"/api/comments/{comment_id}")
 
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_get_recent_comments_success(
+    client: AsyncClient, created_location, admin_auth_header
+):
+    # Create 5 comments
+    for i in range(5):
+        comment_data = {
+            "user_name": f"User {i}",
+            "rating": 5 - i,
+            "comment": f"Test comment {i}",
+            "location_id": created_location["id"],
+        }
+        create_response = await client.post("/api/comments/", data=comment_data)
+        comment_id = create_response.json()["id"]
+
+        # Approve the comment
+        update_data = {"status": "approved"}
+        await client.patch(
+            f"/api/comments/{comment_id}/status",
+            json=update_data,
+            headers=admin_auth_header,
+        )
+
+    # Get recent comments (should return last 3)
+    response = await client.get("/api/comments/recent")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "comments" in data
+    assert len(data["comments"]) == 3
+
+    # Verify structure of each comment
+    for comment in data["comments"]:
+        assert "location_name" in comment
+        assert "location_rating" in comment
+        assert "user_name" in comment
+        assert "description" in comment
+        assert isinstance(comment["location_name"], str)
+        assert isinstance(comment["location_rating"], (int, float))
+        assert isinstance(comment["user_name"], str)
+        assert isinstance(comment["description"], str)
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_get_recent_comments_with_custom_limit(
+    client: AsyncClient, created_location, admin_auth_header
+):
+    # Create 5 comments
+    for i in range(5):
+        comment_data = {
+            "user_name": f"User {i}",
+            "rating": 5,
+            "comment": f"Test comment {i}",
+            "location_id": created_location["id"],
+        }
+        create_response = await client.post("/api/comments/", data=comment_data)
+        comment_id = create_response.json()["id"]
+
+        # Approve the comment
+        update_data = {"status": "approved"}
+        await client.patch(
+            f"/api/comments/{comment_id}/status",
+            json=update_data,
+            headers=admin_auth_header,
+        )
+
+    # Get recent comments with limit=5
+    response = await client.get("/api/comments/recent?limit=5")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert len(data["comments"]) == 5
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_get_recent_comments_empty(client: AsyncClient):
+    # Get recent comments when none exist
+    response = await client.get("/api/comments/recent")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["comments"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_get_recent_comments_only_approved(
+    client: AsyncClient, created_location, admin_auth_header
+):
+    # Create one approved comment
+    comment_data = {
+        "user_name": "Approved User",
+        "rating": 5,
+        "comment": "This is approved.",
+        "location_id": created_location["id"],
+    }
+    create_response = await client.post("/api/comments/", data=comment_data)
+    approved_comment_id = create_response.json()["id"]
+
+    update_data = {"status": "approved"}
+    await client.patch(
+        f"/api/comments/{approved_comment_id}/status",
+        json=update_data,
+        headers=admin_auth_header,
+    )
+
+    # Create one pending comment (should not appear in recent)
+    comment_data = {
+        "user_name": "Pending User",
+        "rating": 4,
+        "comment": "This is pending.",
+        "location_id": created_location["id"],
+    }
+    await client.post("/api/comments/", data=comment_data)
+
+    # Get recent comments
+    response = await client.get("/api/comments/recent")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert len(data["comments"]) == 1
+    assert data["comments"][0]["user_name"] == "Approved User"

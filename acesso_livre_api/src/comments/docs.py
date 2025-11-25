@@ -379,3 +379,51 @@ GET_COMMENTS_BY_LOCATION_DOCS = {
     },
     "tags": ["Comentários"],
 }
+
+# Documentação para o endpoint de listar comentários recentes
+GET_RECENT_COMMENTS_DOCS = {
+    "summary": "Lista os comentários mais recentes aprovados",
+    "description": "Retorna uma lista dos comentários mais recentes que foram aprovados. Inclui informações sobre o local (nome e avaliação média), nome do usuário e descrição do comentário. Por padrão, retorna os 3 comentários mais recentes.",
+    "responses": {
+        200: {
+            "description": "Lista de comentários recentes retornada com sucesso.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "comments": [
+                            {
+                                "location_name": "Biblioteca Municipal",
+                                "location_rating": 4.5,
+                                "user_name": "João Silva",
+                                "description": "Excelente local, muito acessível com rampas e elevadores!",
+                            },
+                            {
+                                "location_name": "Parque Central",
+                                "location_rating": 4.2,
+                                "user_name": "Maria Santos",
+                                "description": "Bom local, mas poderia melhorar a sinalização em braille.",
+                            },
+                            {
+                                "location_name": "Museu de Arte",
+                                "location_rating": 4.8,
+                                "user_name": "Pedro Oliveira",
+                                "description": "Lugar maravilhoso com excelente acessibilidade!",
+                            },
+                        ]
+                    }
+                }
+            },
+        },
+        500: {
+            "description": "Erro interno do servidor",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Ocorreu um erro interno no processamento dos comentários."
+                    }
+                }
+            },
+        },
+    },
+    "tags": ["Comentários"],
+}

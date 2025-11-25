@@ -82,3 +82,20 @@ class CommentListByLocationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class RecentCommentResponse(BaseModel):
+    location_name: str
+    location_rating: float
+    user_name: str
+    description: str
+
+    class Config:
+        from_attributes = True
+
+
+class RecentCommentsListResponse(BaseModel):
+    comments: List[RecentCommentResponse]
+
+    class Config:
+        from_attributes = True

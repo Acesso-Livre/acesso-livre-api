@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import exc as sqlalchemy_exc, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from acesso_livre_api.src.comments import models, schemas
 
@@ -262,4 +263,26 @@ async def get_all_comments_by_location_id(
         logger.error(
             "Erro ao buscar comentários para o local %s: %s", location_id, str(e)
         )
+        raise CommentGenericException()
+
+
+async def get_recent_comments(db: AsyncSession, limit: int = 3):
+    try:
+        stmt = (
+            select(models.Comment)
+            .options(selectinload(models.Comment.location))
+            .where(models.Comment.status == "approved")
+            .order_by(models.Comment.created_at.desc())
+            .limit(limit)
+        )
+        result = await db.execute(stmt)
+        comments = result.unique().scalars().all()
+
+        if not comments:
+            return []
+
+        return comments
+
+    except Exception as e:
+        logger.error("Erro ao buscar comentários recentes: %s", str(e))
         raise CommentGenericException()
