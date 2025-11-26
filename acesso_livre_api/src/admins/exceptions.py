@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from typing import Optional
 
+
 class AdminException(HTTPException):
     """Classe base para todas as exceções do módulo de admins"""
 
@@ -16,6 +17,7 @@ class AdminException(HTTPException):
             headers=headers,
         )
 
+
 class AdminAlreadyExistsException(AdminException):
     """Exceção levantada quando tenta criar um admin com email já existente"""
 
@@ -24,8 +26,6 @@ class AdminAlreadyExistsException(AdminException):
             status_code=status.HTTP_409_CONFLICT,
             detail="Administrador com este email já existe",
         )
-
-
 
 
 class AdminCreationException(AdminException):
@@ -57,6 +57,7 @@ class AdminAuthenticationFailedException(AdminException):
             detail="Email ou senha incorretos",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
 
 class AdminInvalidEmailException(AdminException):
     """Exceção levantada quando o email do admin é inválido"""
@@ -123,6 +124,7 @@ class PasswordResetRequestException(AdminException):
             detail="Erro ao solicitar reset de senha",
         )
 
+
 class TokenCreationException(AdminException):
     """Exceção levantada quando ocorre erro na criação do token de acesso"""
 
@@ -132,6 +134,7 @@ class TokenCreationException(AdminException):
             detail="Erro ao criar token de acesso",
         )
 
+
 class ResetTokenAlreadyUsedException(AdminException):
     """Exceção levantada quando o token de reset de senha já foi usado"""
 
@@ -139,4 +142,14 @@ class ResetTokenAlreadyUsedException(AdminException):
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Token de recuperação já utilizado",
+        )
+
+
+class EmailSendException(AdminException):
+    """Exceção levantada quando ocorre erro no envio do email"""
+
+    def __init__(self, reason: str = "Erro ao enviar email"):
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=reason,
         )

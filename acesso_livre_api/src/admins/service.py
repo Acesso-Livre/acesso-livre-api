@@ -6,8 +6,8 @@ from jose import jwt, JWTError, ExpiredSignatureError
 from passlib.context import CryptContext
 from ..config import settings
 from . import utils
+from .email_service import send_password_reset_email
 import logging
-from .schemas import AdminCreate
 
 logger = logging.getLogger(__name__)
 
@@ -118,8 +118,24 @@ async def request_password_reset(db: AsyncSession, email: str):
         admin.reset_token_hash = reset_token
         admin.reset_token_expires = expire
         await db.commit()
+
+        try:
+            await send_password_reset_email(
+                to_email=admin.email, code=code, reset_token=reset_token
+            )
+            logger.info("Email de recuperação de senha enviado para %s", admin.email)
+        except Exception as e:
+            logger.error(
+                "Erro ao enviar email de recuperação para %s: %s", admin.email, str(e)
+            )
+            raise exceptions.EmailSendException(
+                reason="Não foi possível enviar o email de recuperação. Tente novamente mais tarde."
+            )
+
         return {"message": "Enviamos um link de recuperação ao email."}
     except exceptions.AdminNotFoundException:
+        raise
+    except exceptions.EmailSendException:
         raise
     except Exception as e:
         logger.error("Erro ao solicitar reset de senha: %s", str(e))

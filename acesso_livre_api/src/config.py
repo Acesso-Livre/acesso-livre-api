@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     bucket_endpoint_url: str
     bucket_secret_key: str
     mode: str = "prod"
+    # SMTP Configuration
+    smtp_server: str
+    smtp_port: int
+    smtp_user: str
+    smtp_password: str
+    sender_email: str
 
 
 settings = Settings()
