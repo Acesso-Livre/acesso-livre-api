@@ -13,8 +13,11 @@ from alembic import context
 config = context.config
 
 
-# Set the database URL from settings
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Set the database URL from settings - convert to async driver
+database_url = settings.database_url
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -75,14 +78,13 @@ def run_migrations_online() -> None:
     import asyncio
 
     async def do_run_migrations() -> None:
-        async with connectable.begin() as connection:
-            await connection.run_sync(
-                lambda conn: context.configure(
-                    connection=conn, target_metadata=target_metadata
-                )
-            )
+        async with connectable.connect() as connection:
+            await connection.run_sync(do_run_migrations_sync)
 
-            await connection.run_sync(context.run_migrations)
+    def do_run_migrations_sync(connection):
+        context.configure(connection=connection, target_metadata=target_metadata)
+        with context.begin_transaction():
+            context.run_migrations()
 
     asyncio.run(do_run_migrations())
 
