@@ -149,8 +149,12 @@ async def send_password_reset_email(to_email: str, code: str, reset_token: str) 
         message.attach(part1)
         message.attach(part2)
 
+        # Conectar ao servidor SMTP com STARTTLS
         async with aiosmtplib.SMTP(
-            hostname=settings.smtp_server, port=settings.smtp_port
+            hostname=settings.smtp_server,
+            port=settings.smtp_port,
+            use_tls=False,
+            start_tls=True,
         ) as smtp:
             await smtp.login(settings.smtp_user, settings.smtp_password)
             await smtp.sendmail(settings.sender_email, to_email, message.as_string())
