@@ -20,6 +20,50 @@ async def test_create_comment_success(client: AsyncClient, created_location):
 
 @pytest.mark.asyncio
 @pytest.mark.integration
+async def test_create_comment_with_accessibility_items(
+    client: AsyncClient, created_location, admin_auth_header
+):
+    # Primeiro criar um item de acessibilidade
+    from io import BytesIO
+
+    fake_image = BytesIO(b"fake image content")
+    fake_image.name = "test_icon.png"
+
+    item_response = await client.post(
+        "/api/locations/accessibility-items/",
+        data={"name": "Bebedouro Teste"},
+        files={"image": ("test_icon.png", fake_image, "image/png")},
+        headers=admin_auth_header,
+    )
+
+    if item_response.status_code == 200:
+        item_id = item_response.json()["id"]
+
+        # Criar comentário com accessibility_item_ids
+        comment_data = {
+            "user_name": "Test User",
+            "rating": 5,
+            "comment": "Local com bebedouro acessível.",
+            "location_id": created_location["id"],
+            "accessibility_item_ids": str(item_id),
+        }
+        response = await client.post("/api/comments/", data=comment_data)
+        assert response.status_code == 200
+        data = response.json()
+        assert "id" in data
+        assert data["status"] == "pending"
+
+        # Verificar se o item foi associado ao local
+        location_response = await client.get(
+            f"/api/comments/{created_location['id']}/comments"
+        )
+        assert location_response.status_code == 200
+        location_data = location_response.json()
+        assert "accessibility_items" in location_data
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_create_comment_invalid_rating(client: AsyncClient, created_location):
     comment_data = {
         "user_name": "Test User",
@@ -70,6 +114,7 @@ async def test_get_all_comments_by_location_id_success(
     assert response.status_code == 200
     data = response.json()
     assert "comments" in data
+    assert "accessibility_items" in data
     assert len(data["comments"]) == 1
     assert data["comments"][0]["id"] == comment_id
 
@@ -86,6 +131,7 @@ async def test_get_all_comments_by_location_id_no_comments(
     assert response.status_code == 200
     data = response.json()
     assert "comments" in data
+    assert "accessibility_items" in data
     assert len(data["comments"]) == 0
 
 

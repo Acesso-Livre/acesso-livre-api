@@ -70,11 +70,34 @@ async def create_comment(
                 upload_image_path = await upload_image.upload_image(img)
                 image_list.append(upload_image_path)
 
-        data = comment.model_dump()
+        data = comment.model_dump(exclude={"accessibility_item_ids"})
         data["images"] = image_list
 
         db_comment = models.Comment(**data, created_at=datetime.now(UTC))
         db.add(db_comment)
+
+        # Adicionar itens de acessibilidade ao local se fornecidos
+        if comment.accessibility_item_ids:
+            stmt = (
+                select(location_models.Location)
+                .options(selectinload(location_models.Location.accessibility_items))
+                .where(location_models.Location.id == comment.location_id)
+            )
+            result = await db.execute(stmt)
+            location = result.unique().scalar_one_or_none()
+
+            if location:
+                # Buscar os itens de acessibilidade pelos IDs
+                for item_id in comment.accessibility_item_ids:
+                    stmt_item = select(location_models.AccessibilityItem).where(
+                        location_models.AccessibilityItem.id == item_id
+                    )
+                    result_item = await db.execute(stmt_item)
+                    item = result_item.scalar_one_or_none()
+
+                    if item and item not in location.accessibility_items:
+                        location.accessibility_items.append(item)
+
         await db.commit()
         await db.refresh(db_comment)
 
@@ -274,6 +297,77 @@ async def get_all_comments_by_location_id(
     except Exception as e:
         logger.error(
             "Erro ao buscar comentários para o local %s: %s", location_id, str(e)
+        )
+        raise CommentGenericException()
+
+
+async def get_all_comments_with_accessibility_items(
+    location_id: int, skip: int, limit: int, db: AsyncSession
+):
+    try:
+        # Buscar comentários
+        stmt = (
+            select(models.Comment)
+            .where(
+                models.Comment.location_id == location_id,
+                models.Comment.status == "approved",
+            )
+            .order_by(models.Comment.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await db.execute(stmt)
+        comments = result.scalars().all()
+
+        # Buscar itens de acessibilidade do local
+        stmt_location = (
+            select(location_models.Location)
+            .options(selectinload(location_models.Location.accessibility_items))
+            .where(location_models.Location.id == location_id)
+        )
+        result_location = await db.execute(stmt_location)
+        location = result_location.unique().scalar_one_or_none()
+
+        # Processar imagens dos comentários
+        for comment in comments:
+            if comment.images is None:
+                comment.images = []
+            else:
+                comment.images = await get_signed_urls(comment.images)
+
+        # Processar itens de acessibilidade e suas URLs de ícone
+        accessibility_items = []
+        if location and location.accessibility_items:
+            accessibility_icons = [
+                item.icon_url for item in location.accessibility_items if item.icon_url
+            ]
+            accessibility_icons_signed_urls = (
+                await get_signed_urls(accessibility_icons)
+                if accessibility_icons
+                else []
+            )
+
+            # Criar mapping de icon_url para signed_url
+            icon_url_mapping = dict(
+                zip(accessibility_icons, accessibility_icons_signed_urls)
+            )
+
+            accessibility_items = [
+                {
+                    "id": item.id,
+                    "name": item.name,
+                    "icon_url": icon_url_mapping.get(item.icon_url, ""),
+                }
+                for item in location.accessibility_items
+            ]
+
+        return comments, accessibility_items
+
+    except Exception as e:
+        logger.error(
+            "Erro ao buscar comentários com itens de acessibilidade para o local %s: %s",
+            location_id,
+            str(e),
         )
         raise CommentGenericException()
 

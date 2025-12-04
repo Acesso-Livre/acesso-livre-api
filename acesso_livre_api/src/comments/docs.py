@@ -7,7 +7,7 @@ para manter o código do router limpo e organizado.
 # Documentação para o endpoint de criação de comentário
 CREATE_COMMENT_DOCS = {
     "summary": "Cria um novo comentário",
-    "description": "Cria um novo comentário com nome de usuário, avaliação, texto e uma lista opcional de imagens. O comentário é salvo com o status 'pending' por padrão.",
+    "description": "Cria um novo comentário com nome de usuário, avaliação, texto e uma lista opcional de imagens. Também permite vincular itens de acessibilidade ao local através do campo 'accessibility_item_ids' (IDs separados por vírgula). O comentário é salvo com o status 'pending' por padrão.",
     "responses": {
         201: {
             "description": "Comentário criado com sucesso",
@@ -28,6 +28,12 @@ CREATE_COMMENT_DOCS = {
                             "summary": "Imagens inválidas",
                             "value": {
                                 "detail": "Problema com imagens: Uma ou mais imagens têm formato inválido"
+                            },
+                        },
+                        "accessibility_ids_error": {
+                            "summary": "IDs de acessibilidade inválidos",
+                            "value": {
+                                "detail": "IDs de acessibilidade inválidos"
                             },
                         },
                         "location_id_missing": {
@@ -317,10 +323,10 @@ GET_COMMENT_DOCS = {
 # Documentação para o endpoint de listar comentários por localização
 GET_COMMENTS_BY_LOCATION_DOCS = {
     "summary": "Lista comentários por ID de localização",
-    "description": "Endpoint protegido que requer autenticação. Recupera uma lista paginada de comentários associados a uma localização específica, incluindo comentários com qualquer status (pending, approved, rejected). Suporta paginação via parâmetros 'skip' e 'limit'. Se nenhum comentário for encontrado, retorna uma lista vazia.",
+    "description": "Endpoint protegido que requer autenticação. Recupera uma lista paginada de comentários associados a uma localização específica, incluindo comentários com qualquer status (pending, approved, rejected). Também retorna os itens de acessibilidade do local. Suporta paginação via parâmetros 'skip' e 'limit'. Se nenhum comentário for encontrado, retorna uma lista vazia.",
     "responses": {
         200: {
-            "description": "Lista de comentários retornada com sucesso.",
+            "description": "Lista de comentários e itens de acessibilidade retornada com sucesso.",
             "content": {
                 "application/json": {
                     "example": {
@@ -344,6 +350,18 @@ GET_COMMENTS_BY_LOCATION_DOCS = {
                                 "status": "pending",
                                 "images": [],
                                 "created_at": "2023-10-02T14:30:00Z",
+                            },
+                        ],
+                        "accessibility_items": [
+                            {
+                                "id": 1,
+                                "name": "Bebedouro",
+                                "icon_url": "https://example.com/icons/bebedouro.png",
+                            },
+                            {
+                                "id": 2,
+                                "name": "Rampa de Acesso",
+                                "icon_url": "https://example.com/icons/rampa.png",
                             },
                         ]
                     }

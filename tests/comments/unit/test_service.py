@@ -21,6 +21,7 @@ from acesso_livre_api.src.comments.service import (
     create_comment,
     delete_comment,
     get_all_comments_by_location_id,
+    get_all_comments_with_accessibility_items,
     get_comment,
     get_comments_with_status_pending,
     update_comment_status,
@@ -185,3 +186,93 @@ class TestDeleteComment:
 
         with pytest.raises(CommentDeleteException):
             await delete_comment(mock_db, 1, True)
+
+
+class TestGetAllCommentsWithAccessibilityItems:
+    """Testes para get_all_comments_with_accessibility_items."""
+
+    @pytest.mark.asyncio
+    async def test_get_comments_with_accessibility_items_success(self, mock_db):
+        """Testa busca de comentários com itens de acessibilidade."""
+        mock_comment = Mock()
+        mock_comment.images = []
+
+        mock_item = Mock()
+        mock_item.id = 1
+        mock_item.name = "Bebedouro"
+        mock_item.icon_url = "icons/bebedouro.png"
+
+        mock_location = Mock()
+        mock_location.accessibility_items = [mock_item]
+
+        # Mock para busca de comentários
+        mock_comments_result = MagicMock()
+        mock_comments_scalars = MagicMock()
+        mock_comments_scalars.all.return_value = [mock_comment]
+        mock_comments_result.scalars.return_value = mock_comments_scalars
+
+        # Mock para busca de localização
+        mock_location_result = MagicMock()
+        mock_location_unique = MagicMock()
+        mock_location_unique.scalar_one_or_none.return_value = mock_location
+        mock_location_result.unique.return_value = mock_location_unique
+
+        mock_db.execute = AsyncMock(
+            side_effect=[mock_comments_result, mock_location_result]
+        )
+
+        with patch(
+            "acesso_livre_api.src.comments.service.get_signed_urls",
+            new_callable=AsyncMock,
+        ) as mock_get_signed_urls:
+            mock_get_signed_urls.return_value = ["https://signed-url.com/icons/bebedouro.png"]
+
+            comments, accessibility_items = await get_all_comments_with_accessibility_items(
+                location_id=1, skip=0, limit=10, db=mock_db
+            )
+
+            assert len(comments) == 1
+            assert len(accessibility_items) == 1
+            assert accessibility_items[0]["name"] == "Bebedouro"
+
+    @pytest.mark.asyncio
+    async def test_get_comments_with_accessibility_items_no_items(self, mock_db):
+        """Testa busca de comentários sem itens de acessibilidade."""
+        mock_comment = Mock()
+        mock_comment.images = []
+
+        mock_location = Mock()
+        mock_location.accessibility_items = []
+
+        # Mock para busca de comentários
+        mock_comments_result = MagicMock()
+        mock_comments_scalars = MagicMock()
+        mock_comments_scalars.all.return_value = [mock_comment]
+        mock_comments_result.scalars.return_value = mock_comments_scalars
+
+        # Mock para busca de localização
+        mock_location_result = MagicMock()
+        mock_location_unique = MagicMock()
+        mock_location_unique.scalar_one_or_none.return_value = mock_location
+        mock_location_result.unique.return_value = mock_location_unique
+
+        mock_db.execute = AsyncMock(
+            side_effect=[mock_comments_result, mock_location_result]
+        )
+
+        comments, accessibility_items = await get_all_comments_with_accessibility_items(
+            location_id=1, skip=0, limit=10, db=mock_db
+        )
+
+        assert len(comments) == 1
+        assert len(accessibility_items) == 0
+
+    @pytest.mark.asyncio
+    async def test_get_comments_with_accessibility_items_error(self, mock_db):
+        """Testa erro ao buscar comentários com itens de acessibilidade."""
+        mock_db.execute = AsyncMock(side_effect=Exception("DB Error"))
+
+        with pytest.raises(CommentGenericException):
+            await get_all_comments_with_accessibility_items(
+                location_id=1, skip=0, limit=10, db=mock_db
+            )

@@ -33,12 +33,27 @@ async def create_comment(
     rating: int = Form(..., ge=1, le=5),
     comment: str = Form(..., max_length=500),
     location_id: int = Form(...),
+    accessibility_item_ids: str = Form(None, description="IDs dos itens de acessibilidade separados por vírgula (ex: 1,2,3)"),
     images: list[UploadFile] | None = File(None),
     db: Session = Depends(get_db),
 ):
     try:
+        # Converter string de IDs para lista de inteiros
+        parsed_accessibility_ids = None
+        if accessibility_item_ids:
+            try:
+                parsed_accessibility_ids = [
+                    int(id.strip()) for id in accessibility_item_ids.split(",") if id.strip()
+                ]
+            except ValueError:
+                raise CommentCreateException(reason="IDs de acessibilidade inválidos")
+
         comment_data = schemas.CommentCreate(
-            user_name=user_name, rating=rating, comment=comment, location_id=location_id
+            user_name=user_name,
+            rating=rating,
+            comment=comment,
+            location_id=location_id,
+            accessibility_item_ids=parsed_accessibility_ids,
         )
 
         await location_service.get_location_by_id(db, location_id)
@@ -89,7 +104,7 @@ async def get_all_comments_by_location_id(
     db: Session = Depends(get_db),
 ):
 
-    db_comments = await service.get_all_comments_by_location_id(
+    db_comments, accessibility_items = await service.get_all_comments_with_accessibility_items(
         location_id, skip, limit, db
     )
 
@@ -97,7 +112,9 @@ async def get_all_comments_by_location_id(
         schemas.CommentResponse.model_validate(comment) for comment in db_comments
     ]
 
-    return schemas.CommentListByLocationResponse(comments=comments)
+    return schemas.CommentListByLocationResponse(
+        comments=comments, accessibility_items=accessibility_items
+    )
 
 
 @router.patch(
