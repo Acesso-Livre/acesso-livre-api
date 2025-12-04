@@ -21,6 +21,7 @@ from acesso_livre_api.src.comments.exceptions import (
     CommentUpdateException,
 )
 from acesso_livre_api.storage import upload_image
+from acesso_livre_api.storage.delete_image import delete_images
 from acesso_livre_api.storage.get_url import get_signed_urls
 from fastapi import UploadFile
 
@@ -211,6 +212,17 @@ async def delete_comment(
 
         if not comment:
             raise CommentNotFoundException()
+
+        # Deletar imagens do storage antes de deletar o comentário
+        if comment.images:
+            try:
+                await delete_images(comment.images)
+            except Exception as e:
+                logger.warning(
+                    "Falha ao deletar imagens do comentário %s: %s. "
+                    "Prosseguindo com exclusão do comentário.",
+                    comment_id, str(e)
+                )
 
         await db.delete(comment)
         await db.commit()
