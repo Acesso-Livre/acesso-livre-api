@@ -3,9 +3,10 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from ..config import settings
 import logging
+from func_log import log_message
+
 
 logger = logging.getLogger(__name__)
-
 
 def create_password_reset_email_body(email: str, code: str, reset_token: str) -> str:
     """
@@ -111,6 +112,7 @@ def create_password_reset_email_body(email: str, code: str, reset_token: str) ->
     </body>
     </html>
     """
+    log_message("HTML de e-mail de recuperação criado.", level="debug")
     return html_body
 
 
@@ -160,11 +162,17 @@ async def send_password_reset_email(to_email: str, code: str, reset_token: str) 
             await smtp.sendmail(settings.sender_email, to_email, message.as_string())
 
         logger.info("Email de recuperação de senha enviado para %s", to_email)
+        log_message("Email de recuperação de senha enviado com sucesso.", level="info")
         return True
 
     except aiosmtplib.SMTPException as e:
         logger.error("Erro SMTP ao enviar email para %s: %s", to_email, str(e))
+        log_message("Erro SMTP ao enviar email de recuperação.", level="error")
+        log_message(str(e), level="error")
         raise
     except Exception as e:
         logger.error("Erro inesperado ao enviar email para %s: %s", to_email, str(e))
+        log_message("Erro inesperado ao enviar email de recuperação.", level="error")
+        log_message(str(e), level="error")
         raise
+        

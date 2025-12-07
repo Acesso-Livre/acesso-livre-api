@@ -20,6 +20,8 @@ from acesso_livre_api.src.locations import service as location_service
 from acesso_livre_api.src.locations.exceptions import LocationNotFoundException
 from acesso_livre_api.storage import upload_image
 
+from func_log import *
+
 router = APIRouter()
 
 
@@ -33,27 +35,12 @@ async def create_comment(
     rating: int = Form(..., ge=1, le=5),
     comment: str = Form(..., max_length=500),
     location_id: int = Form(...),
-    accessibility_item_ids: str = Form(None, description="IDs dos itens de acessibilidade separados por vírgula (ex: 1,2,3)"),
     images: list[UploadFile] | None = File(None),
     db: Session = Depends(get_db),
 ):
     try:
-        # Converter string de IDs para lista de inteiros
-        parsed_accessibility_ids = None
-        if accessibility_item_ids:
-            try:
-                parsed_accessibility_ids = [
-                    int(id.strip()) for id in accessibility_item_ids.split(",") if id.strip()
-                ]
-            except ValueError:
-                raise CommentCreateException(reason="IDs de acessibilidade inválidos")
-
         comment_data = schemas.CommentCreate(
-            user_name=user_name,
-            rating=rating,
-            comment=comment,
-            location_id=location_id,
-            accessibility_item_ids=parsed_accessibility_ids,
+            user_name=user_name, rating=rating, comment=comment, location_id=location_id
         )
 
         await location_service.get_location_by_id(db, location_id)
@@ -61,10 +48,14 @@ async def create_comment(
         new_comment = await service.create_comment(
             db=db, comment=comment_data, images=images
         )
+        log_message(f"Comentário criado com sucesso para o local {location_id} por {user_name}", level="info")
         return new_comment
     except (LocationNotFoundException, CommentRatingInvalidException):
+        log_message(f"Falha ao criar comentário para o local {location_id} por {user_name}", level="warning")
         raise
     except Exception as e:
+        log_message(f"Erro ao criar comentário para o local {location_id} por {user_name}", level="error")
+        log_message(str(e), level="error")
         raise CommentCreateException(reason=str(e))
 
 
@@ -87,6 +78,7 @@ async def get_comments_with_status_pending(
         schemas.CommentResponseOnlyStatusPending.model_validate(comment)
         for comment in db_comments
     ]
+    log_message(f"Recuperados {len(comments)} comentários pendentes", level="info")
     return schemas.CommentListResponse(comments=comments)
 
 
@@ -104,17 +96,15 @@ async def get_all_comments_by_location_id(
     db: Session = Depends(get_db),
 ):
 
-    db_comments, accessibility_items = await service.get_all_comments_with_accessibility_items(
+    db_comments = await service.get_all_comments_by_location_id(
         location_id, skip, limit, db
     )
 
     comments = [
         schemas.CommentResponse.model_validate(comment) for comment in db_comments
     ]
-
-    return schemas.CommentListByLocationResponse(
-        comments=comments, accessibility_items=accessibility_items
-    )
+    log_message(f"Recuperados {len(comments)} comentários para o local {location_id}", level="info")
+    return schemas.CommentListByLocationResponse(comments=comments)
 
 
 @router.patch(
@@ -137,8 +127,10 @@ async def update_comment_status_with_id(
         CommentNotPendingException,
         CommentStatusInvalidException,
     ):
+        log_message(f"Falha ao atualizar status do comentário {comment_id}", level="warning")
         raise
     except Exception:
+        log_message(f"Erro ao atualizar status do comentário {comment_id}", level="error")
         raise CommentUpdateException(comment_id=comment_id)
 
 
@@ -151,10 +143,13 @@ async def delete_comment_with_id(
 ):
     try:
         await service.delete_comment(db, comment_id, user_permissions=authenticated_user)
+        log_message(f"Comentário {comment_id} excluído com sucesso", level="info")
         return {"detail": "Comment deleted successfully"}
     except (CommentNotFoundException, CommentPermissionDeniedException):
+        log_message(f"Falha ao excluir comentário {comment_id}", level="warning")
         raise
     except Exception:
+        log_message(f"Erro ao excluir comentário {comment_id}", level="error")
         raise CommentDeleteException()
 
 
@@ -180,8 +175,11 @@ async def get_recent_comments(
             )
             for comment in db_comments
         ]
+        log_message(f"Recuperados {len(comments)} comentários recentes", level="info")
         return schemas.RecentCommentsListResponse(comments=comments)
     except Exception as e:
+        log_message("Erro ao recuperar comentários recentes", level="error")
+        log_message(str(e), level="error")
         raise CommentGenericException()
 
 
@@ -193,6 +191,8 @@ async def get_recent_comments(
 async def read_comment(comment_id: int, db: Session = Depends(get_db)):
     try:
         db_comment = await service.get_comment(db, comment_id)
+        log_message(f"Comentário {comment_id} recuperado com sucesso", level="info")
         return db_comment
     except CommentNotFoundException:
+        log_message(f"Comentário {comment_id} não encontrado", level="warning")
         raise

@@ -2,6 +2,8 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from . import service
 
+from func_log import *
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/admins/login")
 
 def require_auth(endpoint_func):
@@ -21,12 +23,14 @@ def simple_token_verification(token: str = Depends(oauth2_scheme)) -> bool:
             detail="Token de autenticação não fornecido",
             headers={"WWW-Authenticate": "Bearer"},
         )
+        log_message("Token de autenticação não fornecido", level="warning")
     if not service.verify_token(token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido ou expirado",
             headers={"WWW-Authenticate": "Bearer"},
         )
+        log_message("Token inválido ou expirado", level="warning")
     return True
 
 authenticated_user = Depends(simple_token_verification)

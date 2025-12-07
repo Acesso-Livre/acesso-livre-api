@@ -3,7 +3,6 @@ from enum import Enum
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
-from acesso_livre_api.src.locations.schemas import AccessibilityItemResponse
 
 
 class CommentStatus(str, Enum):
@@ -17,7 +16,6 @@ class CommentCreate(BaseModel):
     rating: int = Field(..., ge=1, le=5)
     comment: str = Field(..., max_length=500)
     location_id: int
-    accessibility_item_ids: Optional[List[int]] = Field(default=None)
     # images: Optional[List[str]] = None
 
 
@@ -81,7 +79,6 @@ class CommentResponse(BaseModel):
 
 class CommentListByLocationResponse(BaseModel):
     comments: List[CommentResponse]
-    accessibility_items: List[AccessibilityItemResponse] = Field(default=[])
 
     class Config:
         from_attributes = True

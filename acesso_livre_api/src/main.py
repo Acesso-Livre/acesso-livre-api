@@ -1,4 +1,8 @@
 import logging
+from .func_log import setup_logger, log_message
+
+from pathlib import Path
+from datetime import datetime
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -11,12 +15,15 @@ from .locations.router import router as locations_router
 from .openapi_config import create_custom_openapi
 from .database import engine, Base
 
+app = FastAPI()
+
 # Configuração básica de logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
-app = FastAPI()
+# Initialize logging ofrom func_log
+logger = setup_logger()
 
 
 @app.exception_handler(RequestValidationError)
@@ -75,4 +82,5 @@ app.add_middleware(
 
 @app.get("/", tags=["Status"])
 def read_root():
+    log_message("Logger initialized.","info")
     return {"status": "active"}

@@ -21,11 +21,12 @@ from acesso_livre_api.src.comments.exceptions import (
     CommentUpdateException,
 )
 from acesso_livre_api.storage import upload_image
-from acesso_livre_api.storage.delete_image import delete_images
 from acesso_livre_api.storage.get_url import get_signed_urls
 from fastapi import UploadFile
 
 from acesso_livre_api.src.locations import models as location_models
+
+from func_log import *
 
 logger = logging.getLogger(__name__)
 
@@ -39,18 +40,25 @@ async def get_comment(db: AsyncSession, comment_id: int):
         comment = result.scalar_one_or_none()
 
         if not comment:
+            log_message(f"Comentário {comment_id} não encontrado", level="warning")
             raise CommentNotFoundException()
 
         if comment.images is None:
             comment.images = []
+            log_message(f"Comentário {comment_id} não possui imagens", level="info")
         else:
             comment.images = await get_signed_urls(comment.images)
+            log_message(f"Imagens do comentário {comment_id} processadas com sucesso", level="info")
 
+        log_message(f"Comentário {comment_id} recuperado com sucesso", level="info")
         return comment
 
     except CommentNotFoundException:
+        log_message(f"Comentário {comment_id} não encontrado", level="warning")
         raise
     except Exception as e:
+        log_message(f"Erro ao obter comentário {comment_id}: {str(e)}", level="error")
+        log_message(str(e), level="error")
         logger.error("Erro ao obter comentário %s: %s", comment_id, str(e))
         raise CommentNotFoundException()
 
@@ -62,6 +70,7 @@ async def create_comment(
 ):
     try:
         if comment.rating < 1 or comment.rating > 5:
+            log_message(f"Avaliação inválida fornecida: {comment.rating}", level="warning")
             raise CommentRatingInvalidException(comment.rating)
 
         image_list = []
@@ -70,42 +79,23 @@ async def create_comment(
                 upload_image_path = await upload_image.upload_image(img)
                 image_list.append(upload_image_path)
 
-        data = comment.model_dump(exclude={"accessibility_item_ids"})
+        data = comment.model_dump()
         data["images"] = image_list
 
         db_comment = models.Comment(**data, created_at=datetime.now(UTC))
         db.add(db_comment)
-
-        # Adicionar itens de acessibilidade ao local se fornecidos
-        if comment.accessibility_item_ids:
-            stmt = (
-                select(location_models.Location)
-                .options(selectinload(location_models.Location.accessibility_items))
-                .where(location_models.Location.id == comment.location_id)
-            )
-            result = await db.execute(stmt)
-            location = result.unique().scalar_one_or_none()
-
-            if location:
-                # Buscar os itens de acessibilidade pelos IDs
-                for item_id in comment.accessibility_item_ids:
-                    stmt_item = select(location_models.AccessibilityItem).where(
-                        location_models.AccessibilityItem.id == item_id
-                    )
-                    result_item = await db.execute(stmt_item)
-                    item = result_item.scalar_one_or_none()
-
-                    if item and item not in location.accessibility_items:
-                        location.accessibility_items.append(item)
-
         await db.commit()
         await db.refresh(db_comment)
 
+        log_message(f"Comentário criado com sucesso para o local {comment.location_id} por {comment.user_name}", level="info")
         return db_comment
 
     except (CommentRatingInvalidException, CommentImagesInvalidException):
+        log_message(f"Falha ao criar comentário para o local {comment.location_id} por {comment.user_name}", level="warning")
         raise
     except Exception as e:
+        log_message(f"Erro ao criar comentário para o local {comment.location_id} por {comment.user_name}", level="error")
+        log_message(str(e), level="error")
         logger.error("Erro ao criar comentário: %s", str(e))
         await db.rollback()
         raise CommentCreateException()
@@ -126,17 +116,24 @@ async def get_comments_with_status_pending(
         comments = result.scalars().all()
 
         if not comments:
+            log_message("Nenhum comentário pendente encontrado", level="info")
             return []
 
         for comment in comments:
             if comment.images is None:
+                log_message(f"Comentário {comment.id} não possui imagens", level="info")
                 comment.images = []
             else:
+                log_message(f"Processando imagens do comentário {comment.id}", level="info")
                 comment.images = await get_signed_urls(comment.images)
+
+        log_message(f"Recuperados {len(comments)} comentários pendentes", level="info")
         return comments
 
     except Exception as e:
         logger.error("Erro ao buscar comentários pendentes: %s", str(e))
+        log_message("Erro ao buscar comentários pendentes", level="error")
+        log_message(str(e), level="error")
         raise CommentGenericException()
 
 
@@ -150,12 +147,15 @@ async def update_comment_status(
             new_status.status.value,
         )
 
+        # Compute the status value and log the intent separately to avoid a malformed expression.
         status_value = (
             new_status.status.value
             if hasattr(new_status.status, "value")
             else new_status.status
         )
+        log_message(f"Atualizando status para {status_value}", level="info")
         if status_value not in ["approved", "rejected"]:
+            log_message(f"Status inválido fornecido: {status_value}", level="warning")
             raise CommentStatusInvalidException(status_value)
 
         stmt = select(models.Comment).where(models.Comment.id == comment_id)
@@ -164,10 +164,12 @@ async def update_comment_status(
         logger.info("Comentário encontrado: %s", comment is not None)
 
         if not comment:
+            log_message(f"Comentário {comment_id} não encontrado", level="warning")
             raise CommentNotFoundException()
 
         logger.info("Status atual do comentário: %s", comment.status)
         if comment.status != "pending":
+            log_message(f"Comentário {comment_id} não está pendente (status atual: {comment.status})", level="warning")
             raise CommentNotPendingException(comment_id, comment.status)
 
         comment.status = status_value
@@ -196,7 +198,7 @@ async def update_comment_status(
 
         if comment.images is None:
             comment.images = []
-
+        log_message(f"Comentário {comment_id} atualizado com sucesso para status {status_value}", level="info")
         logger.info(
             "Comentário %s atualizado com sucesso para status %s",
             comment_id,
@@ -209,14 +211,18 @@ async def update_comment_status(
         CommentStatusInvalidException,
         CommentNotPendingException,
     ):
+        log_message(f"Falha ao atualizar status do comentário {comment_id}", level="warning")
         raise
     except sqlalchemy_exc.SQLAlchemyError as e:
         logger.error(
             "Erro de banco de dados ao atualizar comentário %s: %s", comment_id, str(e)
         )
+        log_message(f"Erro de banco de dados ao atualizar comentário {comment_id}", level="error")
         await db.rollback()
         raise CommentUpdateException()
     except Exception as e:
+        log_message(f"Erro inesperado ao atualizar comentário {comment_id}", level="error")
+        log_message(str(e), level="error")
         logger.error("Erro inesperado ao atualizar comentário %s: %s", comment_id, str(e))
         await db.rollback()
         raise CommentUpdateException()
@@ -236,33 +242,26 @@ async def delete_comment(
         if not comment:
             raise CommentNotFoundException()
 
-        # Deletar imagens do storage antes de deletar o comentário
-        if comment.images:
-            try:
-                await delete_images(comment.images)
-            except Exception as e:
-                logger.warning(
-                    "Falha ao deletar imagens do comentário %s: %s. "
-                    "Prosseguindo com exclusão do comentário.",
-                    comment_id, str(e)
-                )
-
         await db.delete(comment)
         await db.commit()
 
+        log_message(f"Comentário {comment_id} excluído com sucesso", level="info")
         return True
 
     except (CommentNotFoundException, CommentPermissionDeniedException):
+        log_message(f"Falha ao excluir comentário {comment_id}", level="warning")
         raise
     except sqlalchemy_exc.SQLAlchemyError as e:
         logger.error(
             "Erro de banco de dados ao excluir comentário %s: %s", comment_id, str(e)
         )
         await db.rollback()
+        log_message(f"Erro de banco de dados ao excluir comentário {comment_id}", level="error")    
         raise CommentDeleteException()
     except Exception as e:
         logger.error("Erro inesperado ao excluir comentário %s: %s", comment_id, str(e))
         await db.rollback()
+        log_message(f"Erro inesperado ao excluir comentário {comment_id}", level="error")  
         raise CommentDeleteException()
 
 
@@ -292,82 +291,14 @@ async def get_all_comments_by_location_id(
             else:
                 comment.images = await get_signed_urls(comment.images)
 
+        log_message(f"Recuperados {len(comments)} comentários para o local {location_id}", level="info")
         return comments
 
     except Exception as e:
+        log_message(f"Erro ao buscar comentários para o local {location_id}", level="error")
+        log_message(str(e), level="error")
         logger.error(
             "Erro ao buscar comentários para o local %s: %s", location_id, str(e)
-        )
-        raise CommentGenericException()
-
-
-async def get_all_comments_with_accessibility_items(
-    location_id: int, skip: int, limit: int, db: AsyncSession
-):
-    try:
-        # Buscar comentários
-        stmt = (
-            select(models.Comment)
-            .where(
-                models.Comment.location_id == location_id,
-                models.Comment.status == "approved",
-            )
-            .order_by(models.Comment.created_at.desc())
-            .offset(skip)
-            .limit(limit)
-        )
-        result = await db.execute(stmt)
-        comments = result.scalars().all()
-
-        # Buscar itens de acessibilidade do local
-        stmt_location = (
-            select(location_models.Location)
-            .options(selectinload(location_models.Location.accessibility_items))
-            .where(location_models.Location.id == location_id)
-        )
-        result_location = await db.execute(stmt_location)
-        location = result_location.unique().scalar_one_or_none()
-
-        # Processar imagens dos comentários
-        for comment in comments:
-            if comment.images is None:
-                comment.images = []
-            else:
-                comment.images = await get_signed_urls(comment.images)
-
-        # Processar itens de acessibilidade e suas URLs de ícone
-        accessibility_items = []
-        if location and location.accessibility_items:
-            accessibility_icons = [
-                item.icon_url for item in location.accessibility_items if item.icon_url
-            ]
-            accessibility_icons_signed_urls = (
-                await get_signed_urls(accessibility_icons)
-                if accessibility_icons
-                else []
-            )
-
-            # Criar mapping de icon_url para signed_url
-            icon_url_mapping = dict(
-                zip(accessibility_icons, accessibility_icons_signed_urls)
-            )
-
-            accessibility_items = [
-                {
-                    "id": item.id,
-                    "name": item.name,
-                    "icon_url": icon_url_mapping.get(item.icon_url, ""),
-                }
-                for item in location.accessibility_items
-            ]
-
-        return comments, accessibility_items
-
-    except Exception as e:
-        logger.error(
-            "Erro ao buscar comentários com itens de acessibilidade para o local %s: %s",
-            location_id,
-            str(e),
         )
         raise CommentGenericException()
 
@@ -387,8 +318,11 @@ async def get_recent_comments(db: AsyncSession, limit: int = 3):
         if not comments:
             return []
 
+        log_message(f"Recuperados {len(comments)} comentários recentes", level="info")
         return comments
 
     except Exception as e:
+        log_message("Erro ao recuperar comentários recentes", level="error")
+        log_message(str(e), level="error")
         logger.error("Erro ao buscar comentários recentes: %s", str(e))
         raise CommentGenericException()

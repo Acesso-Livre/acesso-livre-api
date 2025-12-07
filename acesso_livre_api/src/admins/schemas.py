@@ -2,6 +2,8 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 import re
 from .exceptions import AdminInvalidEmailException, AdminWeakPasswordException
 
+from func_log import *
+
 PASSWORD_PATTERN = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$")
 
 class AdminCreate(BaseModel):
@@ -19,16 +21,20 @@ class AdminCreate(BaseModel):
     @classmethod
     def validate_email(cls, v):
         if not re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", v):
+            log_message(f"Email inválido fornecido: {v}", level="warning")
             raise AdminInvalidEmailException()
+        log_message(f"Email válido fornecido: {v}", level="info")
         return v
 
     @field_validator('password')
     @classmethod
     def validate_password_strength(cls, v):
         if not PASSWORD_PATTERN.match(v):
+            log_message("Senha fraca fornecida.", level="warning")
             raise AdminWeakPasswordException(
                 "A senha deve ter pelo menos 8 caracteres, incluindo letra maiúscula, minúscula, número e caractere especial."
             )
+        log_message("Senha forte fornecida.", level="info")
         return v
 
     model_config = ConfigDict(
