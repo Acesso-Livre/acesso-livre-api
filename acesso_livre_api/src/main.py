@@ -1,5 +1,5 @@
 import logging
-from func_log import setup_logger, log_message
+from .func_log import setup_logger, log_message
 
 from pathlib import Path
 from datetime import datetime
