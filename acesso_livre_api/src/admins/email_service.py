@@ -3,7 +3,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from ..config import settings
 import logging
-from func_log import log_message
+from ..func_log import log_message
 
 
 logger = logging.getLogger(__name__)

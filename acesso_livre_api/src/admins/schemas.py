@@ -2,7 +2,8 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 import re
 from .exceptions import AdminInvalidEmailException, AdminWeakPasswordException
 
-from func_log import *
+from ..func_log import log_message
+
 
 PASSWORD_PATTERN = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$")
 

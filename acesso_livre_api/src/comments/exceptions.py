@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import HTTPException, status
 
-from func_log import *
+from ..func_log import log_message
 
 
 class CommentNotFoundException(HTTPException):

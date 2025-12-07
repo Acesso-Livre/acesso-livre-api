@@ -1,7 +1,7 @@
 import secrets, string
 import re
 
-from func_log import *
+from ..func_log import log_message
 
 def gen_code_for_reset_password() -> str:
     """Gera um código aleatório de 10 caracteres para reset de senha."""

@@ -8,7 +8,7 @@ from ..config import settings
 from . import utils
 from .email_service import send_password_reset_email
 import logging
-from func_log import *
+from ..func_log import log_message
 
 logger = logging.getLogger(__name__)
 

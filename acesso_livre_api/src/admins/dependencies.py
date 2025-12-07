@@ -2,7 +2,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from . import service
 
-from func_log import *
+from ..func_log import log_message
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/admins/login")
 

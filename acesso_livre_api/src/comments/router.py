@@ -20,7 +20,7 @@ from acesso_livre_api.src.locations import service as location_service
 from acesso_livre_api.src.locations.exceptions import LocationNotFoundException
 from acesso_livre_api.storage import upload_image
 
-from func_log import *
+from ..func_log import log_message
 
 router = APIRouter()
 

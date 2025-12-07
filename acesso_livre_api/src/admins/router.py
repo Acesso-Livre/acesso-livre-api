@@ -12,7 +12,7 @@ from .docs import (
     PASSWORD_RESET_DOCS,
 )
 
-from func_log import *
+from ..func_log import log_message
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
