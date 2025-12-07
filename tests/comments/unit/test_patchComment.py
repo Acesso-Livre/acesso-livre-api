@@ -101,3 +101,68 @@ async def test_patch_comments_with_generic_exception(mock_update_avg):
         await service.update_comment_status(db_mock, comment_id=1, new_status=new_status)
 
     db_mock.rollback.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@patch(
+    "acesso_livre_api.src.comments.service.delete_images",
+    new_callable=AsyncMock,
+)
+async def test_patch_comment_reject_deletes_comment_and_images(mock_delete_images):
+    db_mock = AsyncMock()
+
+    comment_with_images = MagicMock(
+        id=1,
+        status=CommentStatus.PENDING,
+        location_id=1,
+        images=["image1.jpg", "image2.jpg"]
+    )
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = comment_with_images
+    db_mock.execute = AsyncMock(return_value=mock_result)
+    mock_delete_images.return_value = True
+
+    new_status = schemas.CommentUpdateStatus(status=CommentStatus.REJECTED)
+    updated_comment = await service.update_comment_status(
+        db_mock, comment_id=1, new_status=new_status
+    )
+
+    # Verificar que delete_images foi chamado com as imagens do comentário
+    mock_delete_images.assert_awaited_once_with(["image1.jpg", "image2.jpg"])
+    
+    # Verificar que o comentário foi deletado
+    db_mock.delete.assert_awaited_once_with(comment_with_images)
+    db_mock.commit.assert_awaited()
+
+
+@pytest.mark.asyncio
+@patch(
+    "acesso_livre_api.src.comments.service.delete_images",
+    new_callable=AsyncMock,
+)
+async def test_patch_comment_reject_without_images(mock_delete_images):
+    db_mock = AsyncMock()
+
+    comment_without_images = MagicMock(
+        id=1,
+        status=CommentStatus.PENDING,
+        location_id=1,
+        images=None
+    )
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = comment_without_images
+    db_mock.execute = AsyncMock(return_value=mock_result)
+
+    new_status = schemas.CommentUpdateStatus(status=CommentStatus.REJECTED)
+    updated_comment = await service.update_comment_status(
+        db_mock, comment_id=1, new_status=new_status
+    )
+
+    # Verificar que delete_images não foi chamado
+    mock_delete_images.assert_not_awaited()
+    
+    # Verificar que o comentário foi deletado mesmo sem imagens
+    db_mock.delete.assert_awaited_once_with(comment_without_images)
+    db_mock.commit.assert_awaited()
