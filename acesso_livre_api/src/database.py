@@ -2,7 +2,7 @@ from .config import settings
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-from func_log import *
+from .func_log import *
 
 SQLALCHEMY_DATABASE_URL = settings.database_url
 
