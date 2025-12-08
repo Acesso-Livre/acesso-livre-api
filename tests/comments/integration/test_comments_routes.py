@@ -21,8 +21,19 @@ async def test_create_comment_success(client: AsyncClient, created_location):
 @pytest.mark.asyncio
 @pytest.mark.integration
 async def test_create_comment_with_accessibility_items(
-    client: AsyncClient, created_location, admin_auth_header
+    client: AsyncClient, created_location, admin_auth_header, mocker
 ):
+    # Mock Supabase storage calls to avoid real HTTP connections in CI
+    mocker.patch(
+        "acesso_livre_api.storage.upload_image.upload_image",
+        return_value="mocked_test_icon.png",
+    )
+
+    mocker.patch(
+        "acesso_livre_api.storage.get_url.get_signed_url",
+        return_value="https://mocked-signed-url.com/mocked_test_icon.png",
+    )
+
     # Primeiro criar um item de acessibilidade
     from io import BytesIO
 

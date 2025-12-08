@@ -206,6 +206,28 @@ async def update_comment_status(
 
                 await db.commit()
 
+        elif status_value == "rejected":
+            # Deletar imagens do storage antes de deletar o comentário
+            if comment.images:
+                try:
+                    await delete_images(comment.images)
+                except Exception as e:
+                    logger.warning(
+                        "Falha ao deletar imagens do comentário %s: %s. "
+                        "Prosseguindo com exclusão do comentário.",
+                        comment_id, str(e)
+                    )
+
+            # Deletar o comentário do banco de dados
+            await db.delete(comment)
+            await db.commit()
+
+            logger.info(
+                "Comentário %s com status rejected foi deletado com sucesso",
+                comment_id,
+            )
+            return comment
+
         if comment.images is None:
             comment.images = []
 
