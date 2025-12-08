@@ -34,6 +34,7 @@ class Comment(Base):
     location_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
     status = Column(String(50), nullable=False, default=CommentStatus.PENDING)
     images = Column(JSON, nullable=True)
+    icon_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
 
     # Relacionamento com Location

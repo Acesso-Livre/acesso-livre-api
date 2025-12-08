@@ -53,6 +53,7 @@ class CommentResponseOnlyStatusPending(BaseModel):
     status: CommentStatus
     images: List[str]
     created_at: datetime
+    icon_url: Optional[str] = None
 
     class Config:
         from_attributes = True

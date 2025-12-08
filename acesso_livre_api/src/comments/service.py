@@ -73,6 +73,18 @@ async def create_comment(
         data = comment.model_dump(exclude={"accessibility_item_ids"})
         data["images"] = image_list
 
+        # Obter o ícone do primeiro item de acessibilidade se fornecido
+        icon_url = None
+        if comment.accessibility_item_ids:
+            stmt_item = select(location_models.AccessibilityItem).where(
+                location_models.AccessibilityItem.id == comment.accessibility_item_ids[0]
+            )
+            result_item = await db.execute(stmt_item)
+            item = result_item.scalar_one_or_none()
+            if item:
+                icon_url = item.icon_url
+        
+        data["icon_url"] = icon_url
         db_comment = models.Comment(**data, created_at=datetime.now(UTC))
         db.add(db_comment)
 
