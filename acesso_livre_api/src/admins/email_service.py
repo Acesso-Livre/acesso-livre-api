@@ -16,13 +16,12 @@ async def send_password_reset_email(to_email: str, code: str, reset_token: str) 
     payload = {
         "service_id": settings.emailjs_service_id,
         "template_id": settings.emailjs_template_id,
-        "user_id": settings.emailjs_private_key,
+        "user_id": settings.emailjs_public_key,  # Public Key para autenticação
         "template_params": {
             "to_email": to_email,
             "code": code,
             "reset_url": reset_url,
         },
-        "accessToken": settings.emailjs_private_key,
     }
 
     try:
