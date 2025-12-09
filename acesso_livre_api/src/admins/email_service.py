@@ -10,13 +10,16 @@ EMAILJS_API_URL = "https://api.emailjs.com/api/v1.0/email/send"
 async def send_password_reset_email(to_email: str, code: str, reset_token: str) -> bool:
     """
     Envia email de recuperação de senha para o administrador usando EmailJS.
+    
+    Para envios via backend (server-side), é OBRIGATÓRIO enviar o accessToken (que é a Private Key).
     """
     reset_url = f"{settings.api}/admins/password-reset?email={to_email}&code={code}&token={reset_token}"
 
     payload = {
         "service_id": settings.emailjs_service_id,
         "template_id": settings.emailjs_template_id,
-        "user_id": settings.emailjs_public_key,  # Public Key para autenticação
+        "user_id": settings.emailjs_public_key,
+        "accessToken": settings.emailjs_private_key,  # A Private Key atua como Access Token
         "template_params": {
             "to_email": to_email,
             "code": code,

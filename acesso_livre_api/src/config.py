@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     # EmailJS Configuration
     emailjs_service_id: str
     emailjs_template_id: str
-    emailjs_public_key: str  # Public Key para autenticação nas requisições HTTP
+    emailjs_public_key: str  # Public Key (user_id)
+    emailjs_private_key: str  # Private Key (accessToken)
 
 
 settings = Settings()

@@ -48,6 +48,8 @@ class TestSendPasswordResetEmail:
 
         json_payload = call_args[1]["json"]
         assert json_payload["template_params"]["to_email"] == to_email
+        assert "accessToken" in json_payload
+        assert "user_id" in json_payload
         assert json_payload["template_params"]["code"] == code
         assert "reset_url" in json_payload["template_params"]
 
