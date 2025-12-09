@@ -45,6 +45,12 @@ async def get_comment(db: AsyncSession, comment_id: int):
             comment.images = []
         else:
             comment.images = await get_signed_urls(comment.images)
+        
+        # Processar icon_url para obter signed URL
+        if comment.icon_url:
+            signed_urls = await get_signed_urls([comment.icon_url])
+            if signed_urls:
+                comment.icon_url = signed_urls[0]
 
         return comment
 
@@ -145,6 +151,12 @@ async def get_comments_with_status_pending(
                 comment.images = []
             else:
                 comment.images = await get_signed_urls(comment.images)
+            
+            # Processar icon_url para obter signed URL
+            if comment.icon_url:
+                signed_urls = await get_signed_urls([comment.icon_url])
+                if signed_urls:
+                    comment.icon_url = signed_urls[0]
         return comments
 
     except Exception as e:
@@ -230,6 +242,12 @@ async def update_comment_status(
 
         if comment.images is None:
             comment.images = []
+        
+        # Processar icon_url para obter signed URL
+        if comment.icon_url:
+            signed_urls = await get_signed_urls([comment.icon_url])
+            if signed_urls:
+                comment.icon_url = signed_urls[0]
 
         logger.info(
             "Comentário %s atualizado com sucesso para status %s",
@@ -325,6 +343,12 @@ async def get_all_comments_by_location_id(
                 comment.images = []
             else:
                 comment.images = await get_signed_urls(comment.images)
+            
+            # Processar icon_url para obter signed URL
+            if comment.icon_url:
+                signed_urls = await get_signed_urls([comment.icon_url])
+                if signed_urls:
+                    comment.icon_url = signed_urls[0]
 
         return comments
 
@@ -420,6 +444,18 @@ async def get_recent_comments(db: AsyncSession, limit: int = 3):
 
         if not comments:
             return []
+        
+        # Processar icon_url para obter signed URLs
+        for comment in comments:
+            if comment.images is None:
+                comment.images = []
+            else:
+                comment.images = await get_signed_urls(comment.images)
+            
+            if comment.icon_url:
+                signed_urls = await get_signed_urls([comment.icon_url])
+                if signed_urls:
+                    comment.icon_url = signed_urls[0]
 
         return comments
 
