@@ -176,3 +176,47 @@ class TestGetRecentComments:
         assert result[0].location is not None
         assert result[0].location.name == "Biblioteca Municipal"
         assert result[0].location.avg_rating == 4.5
+
+    @pytest.mark.asyncio
+    @patch("acesso_livre_api.src.comments.service.get_signed_urls")
+    async def test_get_recent_comments_with_icon_urls(
+        self, mock_get_signed_urls, mock_db, sample_comment
+    ):
+        """Testa se múltiplos comentários com icon_url têm URLs assinadas corretamente."""
+        def mock_get_signed_urls_impl(urls):
+            return [f"signed_{url}" for url in urls]
+        
+        mock_get_signed_urls.side_effect = mock_get_signed_urls_impl
+
+        comment1 = Mock()
+        comment1.user_name = "João Silva"
+        comment1.images = []
+        comment1.icon_url = "icon1.jpg"
+        comment1.status = "approved"
+
+        comment2 = Mock()
+        comment2.user_name = "Maria Santos"
+        comment2.images = []
+        comment2.icon_url = "icon2.jpg"
+        comment2.status = "approved"
+
+        comment3 = Mock()
+        comment3.user_name = "Pedro Oliveira"
+        comment3.images = []
+        comment3.icon_url = None
+        comment3.status = "approved"
+
+        mock_result = MagicMock()
+        mock_result.unique.return_value.scalars.return_value.all.return_value = [
+            comment1,
+            comment2,
+            comment3,
+        ]
+        mock_db.execute.return_value = mock_result
+
+        result = await get_recent_comments(mock_db, limit=5)
+
+        assert len(result) == 3
+        assert result[0].icon_url == "signed_icon1.jpg"
+        assert result[1].icon_url == "signed_icon2.jpg"
+        assert result[2].icon_url is None
