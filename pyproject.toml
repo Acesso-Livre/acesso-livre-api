@@ -17,7 +17,7 @@ bcrypt = "<4.0"
 alembic = "^1.17.1"
 supabase = "^2.24.0"
 aiosqlite = "^0.21.0"
-aiosmtplib = "^3.0.0"
+httpx = "^0.28.1"
 
 [tool.pytest.ini_options]
 markers = ["integration: marca testes de integração"]
@@ -30,7 +30,6 @@ target-version = ['py311']
 pytest = "^8.4.2"
 pytest-mock = "^3.15.1"
 pytest-asyncio = "^1.2.0"
-httpx = "^0.28.1"
 pytest-cov = "^7.0.0"
 pylint = "^4.0.2"
 black = "^25.11.0"
