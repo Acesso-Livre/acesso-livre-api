@@ -107,10 +107,13 @@ class TestGetComment:
     """Testes para get_comment."""
 
     @pytest.mark.asyncio
-    async def test_get_comment_success(self, mock_db):
+    @patch("acesso_livre_api.src.comments.service.get_signed_urls")
+    async def test_get_comment_success(self, mock_get_signed_urls, mock_db):
         """Testa obtenção bem-sucedida de comentário."""
+        mock_get_signed_urls.return_value = []
         mock_comment = Mock()
         mock_comment.images = None
+        mock_comment.icon_url = None
 
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = mock_comment

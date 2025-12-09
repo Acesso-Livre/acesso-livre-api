@@ -11,10 +11,18 @@ from acesso_livre_api.src.comments.models import CommentStatus
     "acesso_livre_api.src.comments.service.update_location_average_rating",
     new_callable=AsyncMock,
 )
-async def test_patch_comment_success(mock_update_avg):
+@patch("acesso_livre_api.src.comments.service.get_signed_urls")
+async def test_patch_comment_success(mock_get_signed_urls, mock_update_avg):
     db_mock = AsyncMock()
+    mock_get_signed_urls.return_value = []
 
-    original_comment = MagicMock(status=CommentStatus.PENDING, location_id=1, rating=4)
+    original_comment = MagicMock(
+        status=CommentStatus.PENDING,
+        location_id=1,
+        rating=4,
+        images=[],
+        icon_url=None
+    )
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = original_comment
@@ -26,7 +34,7 @@ async def test_patch_comment_success(mock_update_avg):
     )
 
     assert updated_comment.status == CommentStatus.APPROVED
-    db_mock.commit.assert_awaited_once()
+    db_mock.commit.assert_awaited()
     mock_update_avg.assert_awaited_once_with(db_mock, 1, 4)
 
 

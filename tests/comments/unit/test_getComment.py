@@ -31,7 +31,7 @@ async def test_get_comment_with_status_pending_success(mock_get_signed_urls):
 async def test_get_comment_with_id(mock_get_signed_urls):
     db_mock = AsyncMock()
     comment_id = 1
-    expected_comment = MagicMock(images=["image1.jpg"], status="approved")
+    expected_comment = MagicMock(images=["image1.jpg"], status="approved", icon_url=None)
     mock_get_signed_urls.return_value = ["signed_url.jpg"]
 
     mock_result = MagicMock()
@@ -76,7 +76,7 @@ async def test_get_comment_generic_exception():
 async def test_get_comment_images_none(mock_get_signed_urls):
     db_mock = AsyncMock()
     comment_id = 1
-    expected_comment = MagicMock(images=None, status="approved")
+    expected_comment = MagicMock(images=None, status="approved", icon_url=None)
     mock_get_signed_urls.return_value = []
 
     mock_result = MagicMock()
