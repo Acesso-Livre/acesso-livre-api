@@ -13,13 +13,13 @@ async def send_password_reset_email(to_email: str, code: str, reset_token: str) 
     
     Para envios via backend (server-side), é OBRIGATÓRIO enviar o accessToken (que é a Private Key).
     """
-    reset_url = f"{settings.api}/admins/password-reset?email={to_email}&code={code}&token={reset_token}"
+    reset_url = f"{settings.fronturl}/pages/admin/password-reset?email={to_email}&code={code}"
 
     payload = {
         "service_id": settings.emailjs_service_id,
         "template_id": settings.emailjs_template_id,
         "user_id": settings.emailjs_public_key,
-        "accessToken": settings.emailjs_private_key,  # A Private Key atua como Access Token
+        "accessToken": settings.emailjs_private_key,  
         "template_params": {
             "to_email": to_email,
             "code": code,
