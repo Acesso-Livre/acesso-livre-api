@@ -145,3 +145,33 @@ class CommentGenericException(HTTPException):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=detail,
         )
+
+
+class ImageNotFoundException(HTTPException):
+    """Exceção levantada quando uma imagem não é encontrada."""
+
+    def __init__(self, image_id: Optional[str] = None) -> None:
+        if image_id:
+            detail = f"Imagem com ID '{image_id}' não encontrada"
+        else:
+            detail = "Imagem não encontrada"
+        
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=detail,
+        )
+
+
+class ImageDeleteException(HTTPException):
+    """Exceção levantada quando ocorre erro ao deletar uma imagem."""
+
+    def __init__(self, image_id: Optional[str] = None) -> None:
+        if image_id:
+            detail = f"Erro ao deletar imagem '{image_id}'"
+        else:
+            detail = "Erro ao deletar imagem"
+        
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=detail,
+        )

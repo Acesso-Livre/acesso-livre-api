@@ -14,6 +14,8 @@ from acesso_livre_api.src.comments.exceptions import (
     CommentRatingInvalidException,
     CommentStatusInvalidException,
     CommentUpdateException,
+    ImageDeleteException,
+    ImageNotFoundException,
 )
 from acesso_livre_api.src.database import get_db
 from acesso_livre_api.src.locations import service as location_service
@@ -196,3 +198,25 @@ async def read_comment(comment_id: int, db: Session = Depends(get_db)):
         return db_comment
     except CommentNotFoundException:
         raise
+
+
+@router.delete(
+    "/images/{image_id}",
+    **docs.DELETE_IMAGE_DOCS,
+)
+@dependencies.require_auth
+async def delete_comment_image(
+    image_id: str,
+    db: Session = Depends(get_db),
+    authenticated_user: bool = dependencies.authenticated_user,
+):
+    try:
+        await service.delete_comment_image(db, image_id)
+        return {"detail": "Image deleted successfully"}
+    except ImageNotFoundException:
+        raise
+    except ImageDeleteException:
+        raise
+    except Exception:
+        raise ImageDeleteException(image_id)
+

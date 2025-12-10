@@ -1,9 +1,17 @@
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 from acesso_livre_api.src.locations.schemas import AccessibilityItemResponse
+
+
+class ImageResponse(BaseModel):
+    id: str
+    url: str
+
+    class Config:
+        from_attributes = True
 
 
 class CommentStatus(str, Enum):
@@ -51,7 +59,7 @@ class CommentResponseOnlyStatusPending(BaseModel):
     comment: str
     location_id: int
     status: CommentStatus
-    images: List[str]
+    images: List[ImageResponse]
     created_at: datetime
     icon_url: Optional[str] = None
 

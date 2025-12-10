@@ -6,6 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from acesso_livre_api.src.comments import models, schemas
+from acesso_livre_api.src.comments.utils import (
+    extract_image_id,
+    find_image_path_by_id,
+    get_images_with_ids,
+)
 
 from acesso_livre_api.src.locations.service import update_location_average_rating
 from acesso_livre_api.src.comments.exceptions import (
@@ -19,15 +24,18 @@ from acesso_livre_api.src.comments.exceptions import (
     CommentRatingInvalidException,
     CommentStatusInvalidException,
     CommentUpdateException,
+    ImageDeleteException,
+    ImageNotFoundException,
 )
 from acesso_livre_api.storage import upload_image
-from acesso_livre_api.storage.delete_image import delete_images
-from acesso_livre_api.storage.get_url import get_signed_urls
+from acesso_livre_api.storage.delete_image import delete_image, delete_images
+from acesso_livre_api.storage.get_url import get_signed_url, get_signed_urls
 from fastapi import UploadFile
 
 from acesso_livre_api.src.locations import models as location_models
 
 logger = logging.getLogger(__name__)
+
 
 
 async def get_comment(db: AsyncSession, comment_id: int):
@@ -150,7 +158,7 @@ async def get_comments_with_status_pending(
             if comment.images is None:
                 comment.images = []
             else:
-                comment.images = await get_signed_urls(comment.images)
+                comment.images = await get_images_with_ids(comment.images)
             
             # Processar icon_url para obter signed URL
             if comment.icon_url:
@@ -462,3 +470,83 @@ async def get_recent_comments(db: AsyncSession, limit: int = 3):
     except Exception as e:
         logger.error("Erro ao buscar comentários recentes: %s", str(e))
         raise CommentGenericException()
+
+
+async def delete_comment_image(
+    db: AsyncSession, image_id: str
+):
+    """Deleta uma imagem específica buscando em todos os comentários.
+    
+    Args:
+        db: Sessão do banco de dados
+        image_id: UUID da imagem (extraído do filename, sem extensão)
+    
+    Raises:
+        ImageNotFoundException: Se a imagem não for encontrada em nenhum comentário
+        ImageDeleteException: Se houver erro ao deletar a imagem
+    """
+    try:
+        # Buscar todos os comentários que possuem imagens
+        stmt = select(models.Comment).where(models.Comment.images.isnot(None))
+        result = await db.execute(stmt)
+        comments = result.scalars().all()
+
+        # Encontrar o comentário que contém essa imagem
+        target_comment = None
+        image_path = None
+        
+        for comment in comments:
+            if comment.images:
+                found_path = find_image_path_by_id(comment.images, image_id)
+                if found_path:
+                    target_comment = comment
+                    image_path = found_path
+                    break
+
+        if not target_comment or not image_path:
+            raise ImageNotFoundException(image_id)
+
+        # Deletar do storage
+        try:
+            await delete_image(image_path)
+        except Exception as e:
+            logger.warning(
+                "Falha ao deletar imagem %s do storage: %s. Prosseguindo com remoção do banco.",
+                image_id, str(e)
+            )
+
+        # Remover do array de imagens do comentário
+        target_comment.images = [img for img in target_comment.images if img != image_path]
+        
+        # Também remover da location se existir
+        if target_comment.location_id:
+            stmt_location = select(location_models.Location).where(
+                location_models.Location.id == target_comment.location_id
+            )
+            result_location = await db.execute(stmt_location)
+            location = result_location.scalar_one_or_none()
+            
+            if location and location.images:
+                location.images = [img for img in location.images if img != image_path]
+
+        await db.commit()
+        
+        logger.info(
+            "Imagem %s deletada com sucesso do comentário %s",
+            image_id, target_comment.id
+        )
+        return True
+
+    except ImageNotFoundException:
+        raise
+    except sqlalchemy_exc.SQLAlchemyError as e:
+        logger.error(
+            "Erro de banco de dados ao deletar imagem %s: %s", image_id, str(e)
+        )
+        await db.rollback()
+        raise ImageDeleteException(image_id)
+    except Exception as e:
+        logger.error("Erro inesperado ao deletar imagem %s: %s", image_id, str(e))
+        await db.rollback()
+        raise ImageDeleteException(image_id)
+

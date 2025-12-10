@@ -46,10 +46,12 @@ class TestGetRecentComments:
     """Testes para get_recent_comments."""
 
     @pytest.mark.asyncio
+    
     @patch("acesso_livre_api.src.comments.service.get_signed_urls")
     async def test_get_recent_comments_success(self, mock_get_signed_urls, mock_db, sample_comment):
         """Testa obtenção bem-sucedida de comentários recentes."""
         mock_get_signed_urls.return_value = []
+        
         # Mock do execute retornando um result object
         mock_result = MagicMock()
         mock_result.unique.return_value.scalars.return_value.all.return_value = [
@@ -75,12 +77,14 @@ class TestGetRecentComments:
         assert result == []
 
     @pytest.mark.asyncio
+    
     @patch("acesso_livre_api.src.comments.service.get_signed_urls")
     async def test_get_recent_comments_with_multiple_comments(
         self, mock_get_signed_urls, mock_db, sample_comment
     ):
         """Testa obtenção de múltiplos comentários recentes."""
         mock_get_signed_urls.return_value = []
+        
         comment2 = Mock()
         comment2.user_name = "Maria Santos"
         comment2.comment = "Bom local!"
@@ -125,10 +129,12 @@ class TestGetRecentComments:
             await get_recent_comments(mock_db, limit=3)
 
     @pytest.mark.asyncio
+    
     @patch("acesso_livre_api.src.comments.service.get_signed_urls")
     async def test_get_recent_comments_respects_limit(self, mock_get_signed_urls, mock_db, sample_comment):
         """Testa se a função respeita o parâmetro limit."""
         mock_get_signed_urls.return_value = []
+        
         # Criar múltiplos comentários
         comments = [sample_comment for _ in range(10)]
 
@@ -143,10 +149,12 @@ class TestGetRecentComments:
         assert len(result) == 5
 
     @pytest.mark.asyncio
+    
     @patch("acesso_livre_api.src.comments.service.get_signed_urls")
     async def test_get_recent_comments_default_limit(self, mock_get_signed_urls, mock_db, sample_comment):
         """Testa se o limite padrão é 3."""
         mock_get_signed_urls.return_value = []
+        
         comments = [sample_comment for _ in range(3)]
 
         mock_result = MagicMock()
@@ -158,12 +166,14 @@ class TestGetRecentComments:
         assert len(result) == 3
 
     @pytest.mark.asyncio
+    
     @patch("acesso_livre_api.src.comments.service.get_signed_urls")
     async def test_get_recent_comments_includes_location(
         self, mock_get_signed_urls, mock_db, sample_comment, sample_location
     ):
         """Testa se os comentários incluem informações de localização."""
         mock_get_signed_urls.return_value = []
+        
         mock_result = MagicMock()
         mock_result.unique.return_value.scalars.return_value.all.return_value = [
             sample_comment
@@ -178,6 +188,7 @@ class TestGetRecentComments:
         assert result[0].location.avg_rating == 4.5
 
     @pytest.mark.asyncio
+    
     @patch("acesso_livre_api.src.comments.service.get_signed_urls")
     async def test_get_recent_comments_with_icon_urls(
         self, mock_get_signed_urls, mock_db, sample_comment
@@ -187,6 +198,7 @@ class TestGetRecentComments:
             return [f"signed_{url}" for url in urls]
         
         mock_get_signed_urls.side_effect = mock_get_signed_urls_impl
+        
 
         comment1 = Mock()
         comment1.user_name = "João Silva"

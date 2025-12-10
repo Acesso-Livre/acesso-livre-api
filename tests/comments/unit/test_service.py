@@ -124,6 +124,7 @@ class TestGetComment:
         assert result == mock_comment
         assert mock_comment.images == []
 
+
     @pytest.mark.asyncio
     async def test_get_comment_not_found(self, mock_db):
         """Testa comentário não encontrado."""
@@ -239,8 +240,10 @@ class TestGetAllCommentsWithAccessibilityItems:
             assert accessibility_items[0]["name"] == "Bebedouro"
 
     @pytest.mark.asyncio
-    async def test_get_comments_with_accessibility_items_no_items(self, mock_db):
+    @patch("acesso_livre_api.src.comments.service.get_signed_urls", new_callable=AsyncMock)
+    async def test_get_comments_with_accessibility_items_no_items(self, mock_get_signed_urls, mock_db):
         """Testa busca de comentários sem itens de acessibilidade."""
+        mock_get_signed_urls.return_value = []
         mock_comment = Mock()
         mock_comment.images = []
 
@@ -269,6 +272,7 @@ class TestGetAllCommentsWithAccessibilityItems:
 
         assert len(comments) == 1
         assert len(accessibility_items) == 0
+
 
     @pytest.mark.asyncio
     async def test_get_comments_with_accessibility_items_error(self, mock_db):

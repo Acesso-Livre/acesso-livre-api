@@ -445,3 +445,45 @@ GET_RECENT_COMMENTS_DOCS = {
     },
     "tags": ["Comentários"],
 }
+
+# Documentação para o endpoint de deletar imagem de comentário
+DELETE_IMAGE_DOCS = {
+    "summary": "Deleta uma imagem específica",
+    "description": "Endpoint protegido para administradores. Remove permanentemente uma imagem específica. O image_id é o UUID do arquivo (nome do arquivo sem extensão), retornado na listagem de comentários. Busca automaticamente em qual comentário a imagem está.",
+    "responses": {
+        200: {
+            "description": "Imagem excluída com sucesso",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Image deleted successfully"}
+                }
+            },
+        },
+        403: {
+            "description": "Acesso negado",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Não autorizado"}
+                }
+            },
+        },
+        404: {
+            "description": "Imagem não encontrada",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Imagem com ID '6a9c217f-3d21-4a90-896a-2a2cb3dc53a8' não encontrada"}
+                }
+            },
+        },
+        500: {
+            "description": "Erro interno do servidor",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Erro ao deletar imagem"}
+                }
+            },
+        },
+    },
+    "tags": ["Comentários"],
+}
+

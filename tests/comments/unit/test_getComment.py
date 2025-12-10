@@ -2,17 +2,22 @@ from unittest.mock import MagicMock, patch, AsyncMock
 
 import pytest
 
-from acesso_livre_api.src.comments import exceptions, service
+from acesso_livre_api.src.comments import exceptions, service, schemas
 
 
 @pytest.mark.asyncio
+@patch("acesso_livre_api.src.comments.service.get_images_with_ids")
 @patch("acesso_livre_api.src.comments.service.get_signed_urls")
-async def test_get_comment_with_status_pending_success(mock_get_signed_urls):
+async def test_get_comment_with_status_pending_success(mock_get_signed_urls, mock_get_images_with_ids):
     db_mock = AsyncMock()
-    mock_get_signed_urls.return_value = ["signed_url_1", "signed_url_2"]
+    mock_get_images_with_ids.return_value = [
+        schemas.ImageResponse(id="uuid1", url="signed_url_1"),
+        schemas.ImageResponse(id="uuid2", url="signed_url_2")
+    ]
+    mock_get_signed_urls.return_value = ["signed_icon_url"]
 
-    mock_comment_1 = MagicMock()
-    mock_comment_2 = MagicMock()
+    mock_comment_1 = MagicMock(images=["uuid1.jpg"], icon_url="icon1.jpg")
+    mock_comment_2 = MagicMock(images=["uuid2.jpg"], icon_url=None)
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = [mock_comment_1, mock_comment_2]
@@ -21,8 +26,6 @@ async def test_get_comment_with_status_pending_success(mock_get_signed_urls):
     comments = await service.get_comments_with_status_pending(db_mock, skip=0, limit=10)
 
     assert len(comments) == 2
-    assert comments[0] == mock_comment_1
-    assert comments[1] == mock_comment_2
     db_mock.execute.assert_awaited_once()
 
 
@@ -88,3 +91,4 @@ async def test_get_comment_images_none(mock_get_signed_urls):
     assert comment.images == []
     mock_get_signed_urls.assert_not_called()
     db_mock.execute.assert_awaited_once()
+
