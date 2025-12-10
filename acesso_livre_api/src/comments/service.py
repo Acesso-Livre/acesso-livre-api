@@ -350,7 +350,7 @@ async def get_all_comments_by_location_id(
             if comment.images is None:
                 comment.images = []
             else:
-                comment.images = await get_signed_urls(comment.images)
+                comment.images = await get_images_with_ids(comment.images)
             
             # Processar icon_url para obter signed URL
             if comment.icon_url:
@@ -399,7 +399,7 @@ async def get_all_comments_with_accessibility_items(
             if comment.images is None:
                 comment.images = []
             else:
-                comment.images = await get_signed_urls(comment.images)
+                comment.images = await get_images_with_ids(comment.images)
 
         # Processar itens de acessibilidade e suas URLs de ícone
         accessibility_items = []

@@ -81,7 +81,7 @@ class CommentResponse(BaseModel):
     comment: str
     location_id: int
     status: CommentStatus
-    images: List[str]
+    images: List[ImageResponse]
     created_at: datetime
 
     class Config:

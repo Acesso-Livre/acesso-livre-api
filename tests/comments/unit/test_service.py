@@ -225,11 +225,18 @@ class TestGetAllCommentsWithAccessibilityItems:
             side_effect=[mock_comments_result, mock_location_result]
         )
 
-        with patch(
-            "acesso_livre_api.src.comments.service.get_signed_urls",
-            new_callable=AsyncMock,
-        ) as mock_get_signed_urls:
+        with (
+            patch(
+                "acesso_livre_api.src.comments.service.get_signed_urls",
+                new_callable=AsyncMock,
+            ) as mock_get_signed_urls,
+            patch(
+                "acesso_livre_api.src.comments.service.get_images_with_ids",
+                new_callable=AsyncMock,
+            ) as mock_get_images_with_ids
+        ):
             mock_get_signed_urls.return_value = ["https://signed-url.com/icons/bebedouro.png"]
+            mock_get_images_with_ids.return_value = []
 
             comments, accessibility_items = await get_all_comments_with_accessibility_items(
                 location_id=1, skip=0, limit=10, db=mock_db
@@ -240,10 +247,12 @@ class TestGetAllCommentsWithAccessibilityItems:
             assert accessibility_items[0]["name"] == "Bebedouro"
 
     @pytest.mark.asyncio
+    @patch("acesso_livre_api.src.comments.service.get_images_with_ids", new_callable=AsyncMock)
     @patch("acesso_livre_api.src.comments.service.get_signed_urls", new_callable=AsyncMock)
-    async def test_get_comments_with_accessibility_items_no_items(self, mock_get_signed_urls, mock_db):
+    async def test_get_comments_with_accessibility_items_no_items(self, mock_get_signed_urls, mock_get_images_with_ids, mock_db):
         """Testa busca de comentários sem itens de acessibilidade."""
         mock_get_signed_urls.return_value = []
+        mock_get_images_with_ids.return_value = []
         mock_comment = Mock()
         mock_comment.images = []
 
