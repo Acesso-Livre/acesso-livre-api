@@ -1,3 +1,4 @@
+from .func_log import log_message
 from .config import settings
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -28,4 +29,6 @@ async def get_db():
         try:
             yield session
         finally:
+            log_message("Database session closed.", level="debug", logger_name="acesso_livre_api")
             await session.close()
+            

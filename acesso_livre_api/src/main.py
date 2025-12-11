@@ -1,4 +1,5 @@
 import logging
+from .func_log import setup_logger, log_message
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -18,6 +19,7 @@ logging.basicConfig(
 
 app = FastAPI()
 
+logger = setup_logger("acesso_livre_api", "logs/acesso_livre_api.log")
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -75,4 +77,5 @@ app.add_middleware(
 
 @app.get("/", tags=["Status"])
 def read_root():
+    log_message("Root endpoint accessed", level="info", logger_name="acesso_livre_api")
     return {"status": "active"}

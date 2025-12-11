@@ -36,6 +36,7 @@ from acesso_livre_api.src.locations import models as location_models
 
 logger = logging.getLogger(__name__)
 
+from ..func_log import log_message
 
 
 async def get_comment(db: AsyncSession, comment_id: int):
@@ -47,6 +48,7 @@ async def get_comment(db: AsyncSession, comment_id: int):
         comment = result.scalar_one_or_none()
 
         if not comment:
+            log_message(f"Comentário {comment_id} não encontrado", level="error", logger_name="acesso_livre_api")
             raise CommentNotFoundException()
 
         if comment.images is None:
@@ -60,11 +62,14 @@ async def get_comment(db: AsyncSession, comment_id: int):
             if signed_urls:
                 comment.icon_url = signed_urls[0]
 
+        log_message(f"Comentário {comment_id} recuperado com sucesso", level="info", logger_name="acesso_livre_api")
         return comment
 
     except CommentNotFoundException:
+        log_message(f"Comentário {comment_id} não encontrado", level="error", logger_name="acesso_livre_api")
         raise
     except Exception as e:
+        log_message(f"Erro ao obter comentário {comment_id}: {str(e)}", level="error", logger_name="acesso_livre_api")
         logger.error("Erro ao obter comentário %s: %s", comment_id, str(e))
         raise CommentNotFoundException()
 
@@ -76,6 +81,7 @@ async def create_comment(
 ):
     try:
         if comment.rating < 1 or comment.rating > 5:
+            log_message(f"Avaliação inválida fornecida: {comment.rating}", level="error", logger_name="acesso_livre_api")
             raise CommentRatingInvalidException(comment.rating)
 
         image_list = []
@@ -127,11 +133,14 @@ async def create_comment(
         await db.commit()
         await db.refresh(db_comment)
 
+        log_message(f"Comentário criado com sucesso para localização {comment.location_id}", level="info", logger_name="acesso_livre_api")
         return db_comment
 
     except (CommentRatingInvalidException, CommentImagesInvalidException):
+        log_message("Falha ao criar comentário devido a dados inválidos", level="error", logger_name="acesso_livre_api")
         raise
     except Exception as e:
+        log_message(f"Erro ao criar comentário: {str(e)}", level="error", logger_name="acesso_livre_api")
         logger.error("Erro ao criar comentário: %s", str(e))
         await db.rollback()
         raise CommentCreateException()
@@ -165,9 +174,11 @@ async def get_comments_with_status_pending(
                 signed_urls = await get_signed_urls([comment.icon_url])
                 if signed_urls:
                     comment.icon_url = signed_urls[0]
+        log_message(f"{len(comments)} comentários pendentes recuperados com sucesso", level="info", logger_name="acesso_livre_api")
         return comments
 
     except Exception as e:
+        log_message(f"Erro ao buscar comentários pendentes: {str(e)}", level="error", logger_name="acesso_livre_api")
         logger.error("Erro ao buscar comentários pendentes: %s", str(e))
         raise CommentGenericException()
 
@@ -196,10 +207,12 @@ async def update_comment_status(
         logger.info("Comentário encontrado: %s", comment is not None)
 
         if not comment:
+            log_message(f"Comentário {comment_id} não encontrado para atualização", level="error", logger_name="acesso_livre_api")
             raise CommentNotFoundException()
 
         logger.info("Status atual do comentário: %s", comment.status)
         if comment.status != "pending":
+            log_message(f"Comentário {comment_id} não está pendente para atualização", level="error", logger_name="acesso_livre_api")
             raise CommentNotPendingException(comment_id, comment.status)
 
         comment.status = status_value
@@ -231,12 +244,14 @@ async def update_comment_status(
             if comment.images:
                 try:
                     await delete_images(comment.images)
+                    log_message(f"Imagens do comentário {comment_id} deletadas com sucesso antes de excluir o comentário", level="info", logger_name="acesso_livre_api")
                 except Exception as e:
                     logger.warning(
                         "Falha ao deletar imagens do comentário %s: %s. "
                         "Prosseguindo com exclusão do comentário.",
                         comment_id, str(e)
                     )
+                    log_message(f"Falha ao deletar imagens do comentário {comment_id}: {str(e)}. Prosseguindo com exclusão do comentário.", level="warning", logger_name="acesso_livre_api")
 
             # Deletar o comentário do banco de dados
             await db.delete(comment)
@@ -246,6 +261,7 @@ async def update_comment_status(
                 "Comentário %s com status rejected foi deletado com sucesso",
                 comment_id,
             )
+            log_message(f"Comentário {comment_id} rejeitado e deletado com sucesso", level="info", logger_name="acesso_livre_api")
             return comment
 
         if comment.images is None:
@@ -262,6 +278,7 @@ async def update_comment_status(
             comment_id,
             status_value,
         )
+        log_message(f"Comentário {comment_id} atualizado com sucesso para status '{status_value}'", level="info", logger_name="acesso_livre_api")
         return comment
 
     except (
@@ -269,16 +286,19 @@ async def update_comment_status(
         CommentStatusInvalidException,
         CommentNotPendingException,
     ):
+        log_message(f"Falha ao atualizar status do comentário {comment_id}", level="error", logger_name="acesso_livre_api")
         raise
     except sqlalchemy_exc.SQLAlchemyError as e:
         logger.error(
             "Erro de banco de dados ao atualizar comentário %s: %s", comment_id, str(e)
         )
         await db.rollback()
+        log_message(f"Erro de banco de dados ao atualizar comentário {comment_id}: {str(e)}", level="error", logger_name="acesso_livre_api")
         raise CommentUpdateException()
     except Exception as e:
         logger.error("Erro inesperado ao atualizar comentário %s: %s", comment_id, str(e))
         await db.rollback()
+        log_message(f"Erro inesperado ao atualizar comentário {comment_id}: {str(e)}", level="error", logger_name="acesso_livre_api")
         raise CommentUpdateException()
 
 
@@ -287,6 +307,7 @@ async def delete_comment(
 ):
     try:
         if not user_permissions:
+            log_message(f"Permissão negada para excluir comentário {comment_id}", level="error", logger_name="acesso_livre_api")
             raise CommentPermissionDeniedException("excluir")
 
         stmt = select(models.Comment).where(models.Comment.id == comment_id)
@@ -294,6 +315,7 @@ async def delete_comment(
         comment = result.scalar_one_or_none()
 
         if not comment:
+            log_message(f"Comentário {comment_id} não encontrado para exclusão", level="error", logger_name="acesso_livre_api")
             raise CommentNotFoundException()
 
         # Deletar imagens do storage antes de deletar o comentário
@@ -306,22 +328,27 @@ async def delete_comment(
                     "Prosseguindo com exclusão do comentário.",
                     comment_id, str(e)
                 )
+                log_message(f"Falha ao deletar imagens do comentário {comment_id}: {str(e)}. Prosseguindo com exclusão do comentário.", level="warning", logger_name="acesso_livre_api")
 
         await db.delete(comment)
         await db.commit()
 
+        log_message(f"Comentário {comment_id} deletado com sucesso", level="info", logger_name="acesso_livre_api")
         return True
 
     except (CommentNotFoundException, CommentPermissionDeniedException):
+        log_message(f"Falha ao deletar comentário {comment_id}", level="error", logger_name="acesso_livre_api")
         raise
     except sqlalchemy_exc.SQLAlchemyError as e:
         logger.error(
             "Erro de banco de dados ao excluir comentário %s: %s", comment_id, str(e)
         )
         await db.rollback()
+        log_message(f"Erro de banco de dados ao excluir comentário {comment_id}: {str(e)}", level="error", logger_name="acesso_livre_api")
         raise CommentDeleteException()
     except Exception as e:
         logger.error("Erro inesperado ao excluir comentário %s: %s", comment_id, str(e))
+        log_message(f"Erro inesperado ao excluir comentário {comment_id}: {str(e)}", level="error", logger_name="acesso_livre_api")
         await db.rollback()
         raise CommentDeleteException()
 
@@ -358,12 +385,14 @@ async def get_all_comments_by_location_id(
                 if signed_urls:
                     comment.icon_url = signed_urls[0]
 
+        log_message(f"{len(comments)} comentários recuperados para o local {location_id}", level="info", logger_name="acesso_livre_api")
         return comments
 
     except Exception as e:
         logger.error(
             "Erro ao buscar comentários para o local %s: %s", location_id, str(e)
         )
+        log_message(f"Erro ao buscar comentários para o local {location_id}: {str(e)}", level="error", logger_name="acesso_livre_api")
         raise CommentGenericException()
 
 
@@ -435,6 +464,7 @@ async def get_all_comments_with_accessibility_items(
             location_id,
             str(e),
         )
+        log_message(f"Erro ao buscar comentários com itens de acessibilidade para o local {location_id}: {str(e)}", level="error", logger_name="acesso_livre_api")
         raise CommentGenericException()
 
 
@@ -465,10 +495,12 @@ async def get_recent_comments(db: AsyncSession, limit: int = 3):
                 if signed_urls:
                     comment.icon_url = signed_urls[0]
 
+        log_message(f"{len(comments)} comentários recentes recuperados", level="info", logger_name="acesso_livre_api")
         return comments
 
     except Exception as e:
         logger.error("Erro ao buscar comentários recentes: %s", str(e))
+        log_message(f"Erro ao buscar comentários recentes: {str(e)}", level="error", logger_name="acesso_livre_api")
         raise CommentGenericException()
 
 
@@ -514,6 +546,7 @@ async def delete_comment_image(
                 "Falha ao deletar imagem %s do storage: %s. Prosseguindo com remoção do banco.",
                 image_id, str(e)
             )
+            log_message(f"Falha ao deletar imagem {image_id} do storage: {str(e)}. Prosseguindo com remoção do banco.", level="warning", logger_name="acesso_livre_api")
 
         # Remover do array de imagens do comentário
         target_comment.images = [img for img in target_comment.images if img != image_path]
@@ -535,18 +568,23 @@ async def delete_comment_image(
             "Imagem %s deletada com sucesso do comentário %s",
             image_id, target_comment.id
         )
+        
+        log_message(f"Imagem {image_id} deletada com sucesso do comentário {target_comment.id}", level="info", logger_name="acesso_livre_api")
         return True
 
     except ImageNotFoundException:
+        log_message(f"Imagem {image_id} não encontrada para deleção", level="error", logger_name="acesso_livre_api")
         raise
     except sqlalchemy_exc.SQLAlchemyError as e:
         logger.error(
             "Erro de banco de dados ao deletar imagem %s: %s", image_id, str(e)
         )
         await db.rollback()
+        log_message(f"Erro de banco de dados ao deletar imagem {image_id}: {str(e)}", level="error", logger_name="acesso_livre_api")
         raise ImageDeleteException(image_id)
     except Exception as e:
         logger.error("Erro inesperado ao deletar imagem %s: %s", image_id, str(e))
         await db.rollback()
+        log_message(f"Erro inesperado ao deletar imagem {image_id}: {str(e)}", level="error", logger_name="acesso_livre_api")
         raise ImageDeleteException(image_id)
 
