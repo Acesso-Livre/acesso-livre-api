@@ -26,6 +26,5 @@ class Settings(BaseSettings):
 settings = Settings()
 
 if settings.mode == "development":
-    logging.basicConfig()
     logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
     print("-----SQLAlchemy debug logs ativados (modo dev)-----")

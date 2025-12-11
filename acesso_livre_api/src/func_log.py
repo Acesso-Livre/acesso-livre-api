@@ -8,7 +8,7 @@ def setup_logger(
     log_dir: str = "logs",
     filename: str = "app.log",
     level: int = logging.INFO,
-    max_bytes: int = 5_000_000,  # 5 MB
+    max_bytes: int = 2_000_000,  # 2 MB
     backup_count: int = 5
 ) -> logging.Logger:
     """
@@ -44,8 +44,9 @@ def setup_logger(
         )
         file_handler.setFormatter(formatter)
 
-        # Optional: Stream handler (console)
+        # Stream handler (console)
         console_handler = logging.StreamHandler()
+        console_handler.setLevel(level)
         console_handler.setFormatter(formatter)
 
         logger.addHandler(file_handler)
@@ -61,18 +62,28 @@ def log_message(message: str, level: str = "info", logger_name: str = "app"):
     Log a message using the configured logger.
     level: 'info', 'warning', 'error', 'debug', 'critical'
     """
-    logger = logging.getLogger(logger_name)
+    try:
+        logger = logging.getLogger(logger_name)
+        
+        # Validar se o logger tem handlers configurados
+        if not logger.handlers and logger_name != "app":
+            logging.warning(
+                f"Logger '{logger_name}' sem handlers configurados! "
+                f"Execute setup_logger('{logger_name}') primeiro."
+            )
 
-    match level.lower():
-        case "info":
-            logger.info(message)
-        case "warning":
-            logger.warning(message)
-        case "error":
-            logger.error(message)
-        case "debug":
-            logger.debug(message)
-        case "critical":
-            logger.critical(message)
-        case _:
-            logger.info(message)
+        match level.lower():
+            case "info":
+                logger.info(message)
+            case "warning":
+                logger.warning(message)
+            case "error":
+                logger.error(message)
+            case "debug":
+                logger.debug(message)
+            case "critical":
+                logger.critical(message)
+            case _:
+                logger.info(message)
+    except Exception as e:
+        logging.error(f"Erro ao fazer log de mensagem: {e}", exc_info=True)

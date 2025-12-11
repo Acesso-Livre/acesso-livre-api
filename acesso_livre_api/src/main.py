@@ -1,4 +1,3 @@
-import logging
 from .func_log import setup_logger, log_message
 
 from fastapi import FastAPI, Request, status
@@ -12,14 +11,15 @@ from .locations.router import router as locations_router
 from .openapi_config import create_custom_openapi
 from .database import engine, Base
 
-# Configuração básica de logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-
 app = FastAPI()
 
-logger = setup_logger("acesso_livre_api", "logs/acesso_livre_api.log")
+# Configuração do logger com rotatividade
+logger = setup_logger(
+    name="acesso_livre_api",
+    log_dir="logs",
+    filename="acesso_livre_api.log",
+    level=20  # logging.INFO
+)
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -32,7 +32,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
     if has_path_errors:
         # Retornar resposta minificada para erros de path params
-        logging.error(f"Erro de validação de path params: {exc.errors()}")
+        logger.error(f"Erro de validação de path params: {exc.errors()}")
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             content={
@@ -47,7 +47,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         message = error["msg"]
         formatted_errors.append({"field": field, "message": message})
 
-    logging.error(f"Erro de validação de dados: {formatted_errors}")
+    logger.error(f"Erro de validação de dados: {formatted_errors}")
 
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
