@@ -6,6 +6,8 @@ from acesso_livre_api.src.database import get_db
 from acesso_livre_api.src.locations import docs, schemas, service
 from acesso_livre_api.storage import upload_image
 
+from ..func_log import log_message
+
 router = APIRouter()
 
 
@@ -19,6 +21,7 @@ async def create_location(
     db: AsyncSession = Depends(get_db),
 ):
     location = await service.create_location(db=db, location=location)
+    log_message(f"Nova localização criada: {location.name}", level="info", logger_name="acesso_livre_api")
     return location
 
 
@@ -40,6 +43,7 @@ async def create_accessibility_item(
     # Criar o item com o path
     item_data = schemas.AccessibilityItemCreate(name=name, icon_url=icon_url)
     db_item = await service.create_accessibility_item(db=db, item=item_data)
+    log_message(f"Novo item de acessibilidade criado: {name}", level="info", logger_name="acesso_livre_api")
     return db_item
 
 
@@ -50,6 +54,7 @@ async def create_accessibility_item(
 )
 async def get_accessibility_items(db: AsyncSession = Depends(get_db)):
     items = await service.get_all_accessibility_items(db=db)
+    log_message("Recuperados todos os itens de acessibilidade", level="info", logger_name="acesso_livre_api")
     return items
 
 
@@ -62,6 +67,7 @@ async def get_accessibility_item_by_id(
     item_id: int = Path(..., gt=0), db: AsyncSession = Depends(get_db)
 ):
     item = await service.get_accessibility_item_by_id(db=db, item_id=item_id)
+    log_message(f"Recuperado item de acessibilidade com ID {item_id}", level="info", logger_name="acesso_livre_api")
     return item
 
 
@@ -74,6 +80,7 @@ async def list_all_locations(
     db: AsyncSession = Depends(get_db),
 ):
     locations = await service.get_all_locations(db=db, skip=skip, limit=limit)
+    log_message(f"Recuperadas localizações: skip={skip}, limit={limit}", level="info", logger_name="acesso_livre_api")
     return schemas.LocationListResponse(locations=locations)
 
 
@@ -100,6 +107,7 @@ async def get_location_by_id(
     location = await service.get_location_by_id(
         db=db, location_id=location_id, skip=skip, limit=limit
     )
+    log_message(f"Recuperada localização com ID {location_id}", level="info", logger_name="acesso_livre_api")
     return location
 
 
@@ -118,6 +126,7 @@ async def update_location(
     location = await service.update_location(
         db=db, location_id=location_id, location_update=location_update
     )
+    log_message(f"Localização com ID {location_id} atualizada", level="info", logger_name="acesso_livre_api")
     return location
 
 
@@ -133,4 +142,5 @@ async def delete_location(
     db: AsyncSession = Depends(get_db),
 ):
     result = await service.delete_location(db=db, location_id=location_id)
+    log_message(f"Localização com ID {location_id} deletada", level="info", logger_name="acesso_livre_api")
     return result
