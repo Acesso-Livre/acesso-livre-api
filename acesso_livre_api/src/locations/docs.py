@@ -132,9 +132,18 @@ GET_LOCATION_DOCS = {
                         "name": "Shopping Center Norte",
                         "description": "Grande centro comercial com acesso para cadeirantes",
                         "images": [
-                            "https://storage.example.com/image1.jpg",
-                            "https://storage.example.com/image2.jpg",
-                            "https://storage.example.com/comment-image1.jpg",
+                            {
+                                "id": "6a9c217f-3d21-4a90-896a-2a2cb3dc53a8",
+                                "url": "https://storage.example.com/image1.jpg",
+                            },
+                            {
+                                "id": "7b9d328g-4e32-5b01-9b7b-3b3dc4ed64b9",
+                                "url": "https://storage.example.com/image2.jpg",
+                            },
+                            {
+                                "id": "8c9e439h-5f43-6c12-0c8c-4c4ed5fe75c0",
+                                "url": "https://storage.example.com/comment-image1.jpg",
+                            },
                         ],
                         "avg_rating": 4.2,
                         "top": 45.2,
@@ -183,7 +192,12 @@ UPDATE_LOCATION_DOCS = {
                         "id": 1,
                         "name": "Shopping Center Norte Atualizado",
                         "description": "Grande centro comercial com acesso para cadeirantes - reformado",
-                        "images": ["https://example.com/image1.jpg"],
+                        "images": [
+                            {
+                                "id": "6a9c217f-3d21-4a90-896a-2a2cb3dc53a8",
+                                "url": "https://example.com/image1.jpg",
+                            }
+                        ],
                         "avg_rating": 4.2,
                         "top": 50.0,
                         "left": 125.0,
