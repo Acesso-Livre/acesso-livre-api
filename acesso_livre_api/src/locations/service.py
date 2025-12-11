@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from acesso_livre_api.src.comments import models as comment_models
 from acesso_livre_api.src.locations import exceptions, models, schemas
+from acesso_livre_api.src.comments.utils import get_images_with_ids
 from acesso_livre_api.storage.get_url import get_signed_url, get_signed_urls
 
 logger = logging.getLogger(__name__)
@@ -145,8 +146,8 @@ async def get_location_by_id(
                 if img not in all_location_images:
                     all_location_images.append(img)
 
-        location_images_signed = (
-            await get_signed_urls(all_location_images) if all_location_images else []
+        location_images_with_ids = (
+            await get_images_with_ids(all_location_images) if all_location_images else []
         )
 
         accessibility_items_icons = [
@@ -169,7 +170,7 @@ async def get_location_by_id(
             description=location.description,
             top=location.top,
             left=location.left,
-            images=location_images_signed,
+            images=location_images_with_ids,
             avg_rating=location_avg_rating,
             accessibility_items=[
                 schemas.AccessibilityItemResponse(

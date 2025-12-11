@@ -3,6 +3,14 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ImageResponse(BaseModel):
+    """Schema para resposta de imagem."""
+    id: str
+    url: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class LocationBase(BaseModel):
     """Schema base para Location com campos comuns."""
 
@@ -90,9 +98,11 @@ class LocationListResponse(BaseModel):
 class LocationDetailResponse(LocationBase):
     """Schema para resposta dos detalhes de um location específico (GET /locations/{id})."""
 
-    images: List[str] = Field(default=[])
+    images: List[ImageResponse] = Field(default=[])
     avg_rating: float = Field(default=0.0, ge=0.0, le=5.0)
     accessibility_items: List[AccessibilityItemResponse] = Field(default=[])
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LocationsQueryParams(BaseModel):
