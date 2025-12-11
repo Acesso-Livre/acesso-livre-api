@@ -22,6 +22,8 @@ from acesso_livre_api.src.locations import service as location_service
 from acesso_livre_api.src.locations.exceptions import LocationNotFoundException
 from acesso_livre_api.storage import upload_image
 
+from ..func_log import log_message
+
 router = APIRouter()
 
 
@@ -48,6 +50,7 @@ async def create_comment(
                     int(id.strip()) for id in accessibility_item_ids.split(",") if id.strip()
                 ]
             except ValueError:
+                log_message("IDs de acessibilidade inválidos fornecidos na criação do comentário", logger_name="acesso_livre_api")
                 raise CommentCreateException(reason="IDs de acessibilidade inválidos")
 
         comment_data = schemas.CommentCreate(
@@ -63,10 +66,13 @@ async def create_comment(
         new_comment = await service.create_comment(
             db=db, comment=comment_data, images=images
         )
+        log_message(f"Comentário criado com sucesso para localização {location_id} por usuário '{user_name}'", level="info", logger_name="acesso_livre_api")
         return new_comment
     except (LocationNotFoundException, CommentRatingInvalidException):
+        log_message(f"Falha ao criar comentário para localização {location_id} por usuário '{user_name}'", level="error", logger_name="acesso_livre_api")
         raise
     except Exception as e:
+        log_message(f"Erro interno ao criar comentário para localização {location_id} por usuário '{user_name}': {str(e)}", level="error", logger_name="acesso_livre_api")
         raise CommentCreateException(reason=str(e))
 
 
@@ -133,14 +139,17 @@ async def update_comment_status_with_id(
 ):
     try:
         updated_comment = await service.update_comment_status(db, comment_id, new_status)
+        log_message(f"Status do comentário {comment_id} atualizado para '{new_status.status}'", level="info", logger_name="acesso_livre_api")
         return updated_comment
     except (
         CommentNotFoundException,
         CommentNotPendingException,
         CommentStatusInvalidException,
     ):
+        log_message(f"Falha ao atualizar status do comentário {comment_id}", level="error", logger_name="acesso_livre_api")
         raise
     except Exception:
+        log_message(f"Erro ao atualizar status do comentário {comment_id}", level="error", logger_name="acesso_livre_api")
         raise CommentUpdateException(comment_id=comment_id)
 
 
@@ -153,10 +162,13 @@ async def delete_comment_with_id(
 ):
     try:
         await service.delete_comment(db, comment_id, user_permissions=authenticated_user)
+        log_message(f"Comentário {comment_id} deletado com sucesso", level="info", logger_name="acesso_livre_api")
         return {"detail": "Comment deleted successfully"}
     except (CommentNotFoundException, CommentPermissionDeniedException):
+        log_message(f"Falha ao deletar comentário {comment_id}", level="error", logger_name="acesso_livre_api")
         raise
     except Exception:
+        log_message(f"Erro ao deletar comentário {comment_id}", level="error", logger_name="acesso_livre_api")
         raise CommentDeleteException()
 
 
@@ -182,8 +194,10 @@ async def get_recent_comments(
             )
             for comment in db_comments
         ]
+        log_message(f"Recuperados {len(comments)} comentários recentes", level="info", logger_name="acesso_livre_api")
         return schemas.RecentCommentsListResponse(comments=comments)
     except Exception as e:
+        log_message(f"Erro ao recuperar comentários recentes: {str(e)}", level="error", logger_name="acesso_livre_api")
         raise CommentGenericException()
 
 
@@ -195,8 +209,10 @@ async def get_recent_comments(
 async def read_comment(comment_id: int, db: Session = Depends(get_db)):
     try:
         db_comment = await service.get_comment(db, comment_id)
+        log_message(f"Comentário {comment_id} recuperado com sucesso", level="info", logger_name="acesso_livre_api")
         return db_comment
     except CommentNotFoundException:
+        log_message(f"Comentário {comment_id} não encontrado", level="error", logger_name="acesso_livre_api")
         raise
 
 
@@ -212,11 +228,15 @@ async def delete_comment_image(
 ):
     try:
         await service.delete_comment_image(db, image_id)
+        log_message(f"Imagem {image_id} deletada com sucesso", level="info", logger_name="acesso_livre_api")
         return {"detail": "Image deleted successfully"}
     except ImageNotFoundException:
+        log_message(f"Imagem {image_id} não encontrada para deleção", level="error", logger_name="acesso_livre_api")
         raise
     except ImageDeleteException:
+        log_message(f"Erro ao deletar imagem {image_id}", level="error", logger_name="acesso_livre_api")
         raise
     except Exception:
+        log_message(f"Erro interno ao deletar imagem {image_id}", level="error", logger_name="acesso_livre_api")
         raise ImageDeleteException(image_id)
 
