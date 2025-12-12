@@ -62,7 +62,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 app.openapi = create_custom_openapi(app)
 
 app.include_router(admins_router, prefix="/api/admins", tags=["Administração"])
-app.include_router(comments_router, prefix="/api/comments", tags=["Comentários"])
+app.include_router(comments_router, prefix="/api/comments")
 app.include_router(locations_router, prefix="/api/locations", tags=["Locais"])
 
 

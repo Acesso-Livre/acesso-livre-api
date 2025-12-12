@@ -67,10 +67,9 @@ def log_message(message: str, level: str = "info", logger_name: str = "app"):
         
         # Validar se o logger tem handlers configurados
         if not logger.handlers and logger_name != "app":
-            logging.warning(
-                f"Logger '{logger_name}' sem handlers configurados! "
-                f"Execute setup_logger('{logger_name}') primeiro."
-            )
+            # Tentar configurar o logger automaticamente se não estiver configurado
+            setup_logger(name=logger_name, filename=f"{logger_name}.log")
+            logger = logging.getLogger(logger_name) # Recarregar logger configurado
 
         match level.lower():
             case "info":
