@@ -7,6 +7,7 @@ from acesso_livre_api.src.comments import models as comment_models
 from acesso_livre_api.src.locations import exceptions, models, schemas
 from acesso_livre_api.src.comments.utils import get_images_with_ids
 from acesso_livre_api.storage.get_url import get_signed_url, get_signed_urls
+from acesso_livre_api.storage.delete_image import delete_images
 
 logger = logging.getLogger(__name__)
 
@@ -247,6 +248,18 @@ async def delete_location(db: AsyncSession, location_id: int):
 
         if not location:
             raise exceptions.LocationNotFoundException()
+
+        if location.images:
+            try:
+                await delete_images(location.images)
+                logger.info(f"Imagens da localização {location_id} deletadas com sucesso")
+            except Exception as e:
+                logger.warning(
+                    "Falha ao deletar imagens da localização %s: %s. "
+                    "Prosseguindo com exclusão da localização.",
+                    location_id,
+                    str(e),
+                )
 
         await db.delete(location)
         await db.commit()
