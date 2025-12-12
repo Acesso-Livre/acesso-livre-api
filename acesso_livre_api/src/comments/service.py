@@ -687,6 +687,89 @@ async def get_comment_icon_by_id(db: AsyncSession, icon_id: int):
         raise CommentGenericException()
 
 
+async def update_comment_icon(
+    db: AsyncSession,
+    icon_id: int,
+    name: str | None = None,
+    image: UploadFile | None = None,
+):
+    """Atualizar um ícone de comentário."""
+    try:
+        stmt = select(models.CommentIcon).where(models.CommentIcon.id == icon_id)
+        result = await db.execute(stmt)
+        icon = result.scalars().first()
+
+        if not icon:
+            raise CommentGenericException()
+
+        if name:
+            icon.name = name
+
+        if image:
+            # Upload da nova imagem
+            new_icon_url = await upload_image.upload_image(image)
+
+            # Deletar imagem antiga se existir
+            if icon.icon_url:
+                try:
+                    await delete_image(icon.icon_url)
+                except Exception as e:
+                    logger.warning(
+                        "Falha ao deletar imagem antiga %s do ícone %s: %s",
+                        icon.icon_url,
+                        icon_id,
+                        str(e),
+                    )
+                    log_message(
+                        f"Falha ao deletar imagem antiga {icon.icon_url} do ícone {icon_id}: {str(e)}",
+                        level="warning",
+                        logger_name="acesso_livre_api",
+                    )
+
+            icon.icon_url = new_icon_url
+
+        await db.commit()
+        await db.refresh(icon)
+
+        # Obter signed URL para retorno
+        if icon.icon_url:
+            signed_urls = await get_signed_urls([icon.icon_url])
+            if signed_urls:
+                icon.icon_url = signed_urls[0]
+
+        log_message(
+            f"Ícone de comentário {icon_id} atualizado com sucesso",
+            level="info",
+            logger_name="acesso_livre_api",
+        )
+        return icon
+
+    except sqlalchemy_exc.SQLAlchemyError as e:
+        logger.error(
+            "Erro de banco de dados ao atualizar ícone de comentário %s: %s",
+            icon_id,
+            str(e),
+        )
+        await db.rollback()
+        log_message(
+            f"Erro de banco de dados ao atualizar ícone de comentário {icon_id}: {str(e)}",
+            level="error",
+            logger_name="acesso_livre_api",
+        )
+        raise CommentGenericException()
+    except Exception as e:
+        logger.error(
+            "Erro inesperado ao atualizar ícone de comentário %s: %s", icon_id, str(e)
+        )
+        await db.rollback()
+        log_message(
+            f"Erro inesperado ao atualizar ícone de comentário {icon_id}: {str(e)}",
+            level="error",
+            logger_name="acesso_livre_api",
+        )
+        raise CommentGenericException()
+
+
 async def delete_comment_icon(db: AsyncSession, icon_id: int):
     """Deletar um ícone de comentário."""
     try:

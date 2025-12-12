@@ -300,6 +300,34 @@ async def get_comment_icon_by_id(
         raise CommentGenericException()
 
 
+@router.patch(
+    "/icons/{icon_id}",
+    response_model=schemas.CommentIconResponse,
+    **docs.UPDATE_COMMENT_ICON_DOCS,
+)
+@dependencies.require_auth
+async def update_comment_icon(
+    icon_id: int = Path(...),
+    name: str = Form(None),
+    image: UploadFile = File(None),
+    authenticated_user: bool = dependencies.authenticated_user,
+    db: Session = Depends(get_db),
+):
+    """Atualizar um ícone de comentário."""
+    try:
+        updated_icon = await service.update_comment_icon(
+            db=db, icon_id=icon_id, name=name, image=image
+        )
+        return updated_icon
+    except Exception as e:
+        log_message(
+            f"Erro ao atualizar ícone de comentário {icon_id}: {str(e)}",
+            level="error",
+            logger_name="acesso_livre_api",
+        )
+        raise CommentGenericException()
+
+
 @router.delete(
     "/icons/{icon_id}",
     **docs.DELETE_COMMENT_ICON_DOCS,

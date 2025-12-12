@@ -547,6 +547,31 @@ GET_COMMENT_ICON_BY_ID_DOCS = {
     "tags": ["Comentários - Ícones"],
 }
 
+UPDATE_COMMENT_ICON_DOCS = {
+    "summary": "Atualiza um ícone de comentário",
+    "description": "Atualiza as informações de um ícone de comentário existente, incluindo nome e imagem. Se uma nova imagem for enviada, a anterior será substituída e removida do storage. Requer autenticação.",
+    "responses": {
+        200: {
+            "description": "Ícone atualizado com sucesso",
+            "content": {
+                "application/json": {
+                    "example": {"id": 1, "name": "Feedback Atualizado", "icon_url": "signed_url"}
+                }
+            },
+        },
+        401: {
+            "description": "Não autenticado",
+        },
+        404: {
+            "description": "Ícone não encontrado",
+        },
+        422: {
+            "description": "Erro de validação",
+        },
+    },
+    "tags": ["Comentários - Ícones"],
+}
+
 DELETE_COMMENT_ICON_DOCS = {
     "summary": "Deleta um ícone de comentário",
     "description": "Remove um ícone de comentário do sistema. Requer autenticação.",
