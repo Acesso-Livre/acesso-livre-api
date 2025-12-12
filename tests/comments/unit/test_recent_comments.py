@@ -57,7 +57,7 @@ class TestGetRecentComments:
         mock_result.unique.return_value.scalars.return_value.all.return_value = [
             sample_comment
         ]
-        mock_db.execute.return_value = mock_result
+        mock_db.execute = AsyncMock(return_value=mock_result)
 
         result = await get_recent_comments(mock_db, limit=3)
 
@@ -103,7 +103,7 @@ class TestGetRecentComments:
             comment2,
             comment3,
         ]
-        mock_db.execute.return_value = mock_result
+        mock_db.execute = AsyncMock(return_value=mock_result)
 
         result = await get_recent_comments(mock_db, limit=5)
 
@@ -142,7 +142,7 @@ class TestGetRecentComments:
         mock_result.unique.return_value.scalars.return_value.all.return_value = comments[
             :5
         ]
-        mock_db.execute.return_value = mock_result
+        mock_db.execute = AsyncMock(return_value=mock_result)
 
         result = await get_recent_comments(mock_db, limit=5)
 
@@ -159,7 +159,7 @@ class TestGetRecentComments:
 
         mock_result = MagicMock()
         mock_result.unique.return_value.scalars.return_value.all.return_value = comments
-        mock_db.execute.return_value = mock_result
+        mock_db.execute = AsyncMock(return_value=mock_result)
 
         result = await get_recent_comments(mock_db)
 
@@ -178,7 +178,7 @@ class TestGetRecentComments:
         mock_result.unique.return_value.scalars.return_value.all.return_value = [
             sample_comment
         ]
-        mock_db.execute.return_value = mock_result
+        mock_db.execute = AsyncMock(return_value=mock_result)
 
         result = await get_recent_comments(mock_db, limit=3)
 

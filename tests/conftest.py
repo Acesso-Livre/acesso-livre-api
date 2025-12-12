@@ -6,6 +6,8 @@ from sqlalchemy.orm import sessionmaker
 
 from acesso_livre_api.src.database import Base, get_db
 from acesso_livre_api.src.locations.models import AccessibilityItem
+from acesso_livre_api.src.comments import models as comments_models
+from acesso_livre_api.src.admins import models as admins_models
 from acesso_livre_api.src.main import app
 
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///:memory:"

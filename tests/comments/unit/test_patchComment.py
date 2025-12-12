@@ -25,7 +25,7 @@ async def test_patch_comment_success(mock_get_signed_urls, mock_update_avg):
     )
 
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = original_comment
+    mock_result.scalars.return_value.first.return_value = original_comment
     db_mock.execute = AsyncMock(return_value=mock_result)
 
     new_status = schemas.CommentUpdateStatus(status=CommentStatus.APPROVED)
@@ -60,7 +60,7 @@ async def test_patch_comment_not_found():
     db_mock = AsyncMock()
 
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = None
+    mock_result.scalars.return_value.first.return_value = None
     db_mock.execute = AsyncMock(return_value=mock_result)
 
     new_status = schemas.CommentUpdateStatus(status=CommentStatus.APPROVED)
@@ -96,7 +96,7 @@ async def test_patch_comments_with_generic_exception(mock_update_avg):
 
     existing_comment = MagicMock(status=CommentStatus.PENDING)
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = existing_comment
+    mock_result.scalars.return_value.first.return_value = existing_comment
     db_mock.execute = AsyncMock(return_value=mock_result)
 
     db_mock.commit = AsyncMock(side_effect=Exception("Database error"))
@@ -127,7 +127,7 @@ async def test_patch_comment_reject_deletes_comment_and_images(mock_delete_image
     )
 
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = comment_with_images
+    mock_result.scalars.return_value.first.return_value = comment_with_images
     db_mock.execute = AsyncMock(return_value=mock_result)
     mock_delete_images.return_value = True
 
@@ -160,7 +160,7 @@ async def test_patch_comment_reject_without_images(mock_delete_images):
     )
 
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = comment_without_images
+    mock_result.scalars.return_value.first.return_value = comment_without_images
     db_mock.execute = AsyncMock(return_value=mock_result)
 
     new_status = schemas.CommentUpdateStatus(status=CommentStatus.REJECTED)

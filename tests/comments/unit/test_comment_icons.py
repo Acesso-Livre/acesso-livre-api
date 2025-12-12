@@ -1,6 +1,6 @@
 """Testes para gerenciamento de ícones de comentário."""
 
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, AsyncMock, MagicMock, patch
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -78,9 +78,9 @@ class TestGetAllCommentIcons:
     @pytest.mark.asyncio
     async def test_get_all_comment_icons_success(self, mock_db, mock_comment_icon):
         """Testa obtenção bem-sucedida de todos os ícones."""
-        mock_result = AsyncMock()
+        mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = [mock_comment_icon]
-        mock_db.execute.return_value = mock_result
+        mock_db.execute = AsyncMock(return_value=mock_result)
 
         with patch(
             "acesso_livre_api.src.comments.service.get_signed_urls"
@@ -96,9 +96,9 @@ class TestGetAllCommentIcons:
     @pytest.mark.asyncio
     async def test_get_all_comment_icons_empty(self, mock_db):
         """Testa obtenção quando não há ícones."""
-        mock_result = AsyncMock()
+        mock_result = MagicMock()
         mock_result.scalars.return_value.all.return_value = []
-        mock_db.execute.return_value = mock_result
+        mock_db.execute = AsyncMock(return_value=mock_result)
 
         with patch(
             "acesso_livre_api.src.comments.service.get_signed_urls"
@@ -124,9 +124,9 @@ class TestGetCommentIconById:
     @pytest.mark.asyncio
     async def test_get_comment_icon_by_id_success(self, mock_db, mock_comment_icon):
         """Testa obtenção bem-sucedida de ícone por ID."""
-        mock_result = AsyncMock()
-        mock_result.scalar_one_or_none.return_value = mock_comment_icon
-        mock_db.execute.return_value = mock_result
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.first.return_value = mock_comment_icon
+        mock_db.execute = AsyncMock(return_value=mock_result)
 
         with patch(
             "acesso_livre_api.src.comments.service.get_signed_urls"
@@ -141,9 +141,9 @@ class TestGetCommentIconById:
     @pytest.mark.asyncio
     async def test_get_comment_icon_by_id_not_found(self, mock_db):
         """Testa erro quando ícone não é encontrado."""
-        mock_result = AsyncMock()
-        mock_result.scalar_one_or_none.return_value = None
-        mock_db.execute.return_value = mock_result
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.first.return_value = None
+        mock_db.execute = AsyncMock(return_value=mock_result)
 
         with pytest.raises(CommentGenericException):
             await get_comment_icon_by_id(mock_db, icon_id=999)
@@ -155,9 +155,9 @@ class TestDeleteCommentIcon:
     @pytest.mark.asyncio
     async def test_delete_comment_icon_success(self, mock_db, mock_comment_icon):
         """Testa deleção bem-sucedida de ícone."""
-        mock_result = AsyncMock()
-        mock_result.scalar_one_or_none.return_value = mock_comment_icon
-        mock_db.execute.return_value = mock_result
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.first.return_value = mock_comment_icon
+        mock_db.execute = AsyncMock(return_value=mock_result)
 
         with patch("acesso_livre_api.src.comments.service.delete_image") as mock_delete:
             mock_delete.return_value = None
@@ -171,9 +171,9 @@ class TestDeleteCommentIcon:
     @pytest.mark.asyncio
     async def test_delete_comment_icon_not_found(self, mock_db):
         """Testa erro quando ícone não é encontrado."""
-        mock_result = AsyncMock()
-        mock_result.scalar_one_or_none.return_value = None
-        mock_db.execute.return_value = mock_result
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.first.return_value = None
+        mock_db.execute = AsyncMock(return_value=mock_result)
 
         with pytest.raises(CommentGenericException):
             await delete_comment_icon(mock_db, icon_id=999)
@@ -181,10 +181,10 @@ class TestDeleteCommentIcon:
     @pytest.mark.asyncio
     async def test_delete_comment_icon_db_error(self, mock_db, mock_comment_icon):
         """Testa erro de banco de dados na deleção."""
-        mock_result = AsyncMock()
-        mock_result.scalar_one_or_none.return_value = mock_comment_icon
-        mock_db.execute.return_value = mock_result
-        mock_db.commit.side_effect = SQLAlchemyError("DB Error")
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.first.return_value = mock_comment_icon
+        mock_db.execute = AsyncMock(return_value=mock_result)
+        mock_db.commit = AsyncMock(side_effect=SQLAlchemyError("DB Error"))
 
         with patch("acesso_livre_api.src.comments.service.delete_image"):
             with pytest.raises(CommentGenericException):

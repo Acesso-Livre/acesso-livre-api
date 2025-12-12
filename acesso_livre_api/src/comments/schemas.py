@@ -96,6 +96,7 @@ class CommentResponse(BaseModel):
 
 class CommentListByLocationResponse(BaseModel):
     comments: List[CommentResponse]
+    accessibility_items: List[dict] = Field(default=[])
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -20,7 +20,7 @@ async def test_get_comment_with_status_pending_success(mock_get_signed_urls, moc
     mock_comment_2 = MagicMock(images=["uuid2.jpg"], icon_url=None)
 
     mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = [mock_comment_1, mock_comment_2]
+    mock_result.unique.return_value.scalars.return_value.all.return_value = [mock_comment_1, mock_comment_2]
     db_mock.execute = AsyncMock(return_value=mock_result)
 
     comments = await service.get_comments_with_status_pending(db_mock, skip=0, limit=10)
@@ -38,7 +38,7 @@ async def test_get_comment_with_id(mock_get_signed_urls):
     mock_get_signed_urls.return_value = ["signed_url.jpg"]
 
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = expected_comment
+    mock_result.unique.return_value.scalars.return_value.first.return_value = expected_comment
     db_mock.execute = AsyncMock(return_value=mock_result)
 
     comment = await service.get_comment(db_mock, comment_id)
@@ -55,7 +55,7 @@ async def test_get_comment_not_found():
     comment_id = 999
 
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = None
+    mock_result.unique.return_value.scalars.return_value.first.return_value = None
     db_mock.execute = AsyncMock(return_value=mock_result)
 
     with pytest.raises(exceptions.CommentNotFoundException):
@@ -83,7 +83,7 @@ async def test_get_comment_images_none(mock_get_signed_urls):
     mock_get_signed_urls.return_value = []
 
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = expected_comment
+    mock_result.unique.return_value.scalars.return_value.first.return_value = expected_comment
     db_mock.execute = AsyncMock(return_value=mock_result)
 
     comment = await service.get_comment(db_mock, comment_id)
