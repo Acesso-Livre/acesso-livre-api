@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, UploadFile, Form, status
+from fastapi import APIRouter, Depends, File, UploadFile, Form, status, Path
 from fastapi.params import Query
 from sqlalchemy.orm import Session
 
@@ -37,28 +37,28 @@ async def create_comment(
     rating: int = Form(..., ge=1, le=5),
     comment: str = Form(..., max_length=500),
     location_id: int = Form(...),
-    accessibility_item_ids: str = Form(None, description="IDs dos itens de acessibilidade separados por vírgula (ex: 1,2,3)"),
+    comment_icon_ids: str = Form(None, description="IDs dos ícones de comentário separados por vírgula (ex: 1,2,3)"),
     images: list[UploadFile] | None = File(None),
     db: Session = Depends(get_db),
 ):
     try:
         # Converter string de IDs para lista de inteiros
-        parsed_accessibility_ids = None
-        if accessibility_item_ids:
+        parsed_icon_ids = None
+        if comment_icon_ids:
             try:
-                parsed_accessibility_ids = [
-                    int(id.strip()) for id in accessibility_item_ids.split(",") if id.strip()
+                parsed_icon_ids = [
+                    int(id.strip()) for id in comment_icon_ids.split(",") if id.strip()
                 ]
             except ValueError:
-                log_message("IDs de acessibilidade inválidos fornecidos na criação do comentário", logger_name="acesso_livre_api")
-                raise CommentCreateException(reason="IDs de acessibilidade inválidos")
+                log_message("IDs de ícones inválidos fornecidos na criação do comentário", logger_name="acesso_livre_api")
+                raise CommentCreateException(reason="IDs de ícones inválidos")
 
         comment_data = schemas.CommentCreate(
             user_name=user_name,
             rating=rating,
             comment=comment,
             location_id=location_id,
-            accessibility_item_ids=parsed_accessibility_ids,
+            comment_icon_ids=parsed_icon_ids,
         )
 
         await location_service.get_location_by_id(db, location_id)
@@ -239,4 +239,83 @@ async def delete_comment_image(
     except Exception:
         log_message(f"Erro interno ao deletar imagem {image_id}", level="error", logger_name="acesso_livre_api")
         raise ImageDeleteException(image_id)
+
+
+# Comment Icons Endpoints
+
+@router.post(
+    "/icons/",
+    response_model=schemas.CommentIconCreateResponse,
+    **docs.CREATE_COMMENT_ICON_DOCS,
+)
+@dependencies.require_auth
+async def create_comment_icon(
+    name: str = Form(...),
+    image: UploadFile = File(...),
+    authenticated_user: bool = dependencies.authenticated_user,
+    db: Session = Depends(get_db),
+):
+    """Criar um novo ícone de comentário."""
+    try:
+        icon_url = await upload_image.upload_image(image)
+        db_icon = await service.create_comment_icon(db=db, name=name, icon_url=icon_url)
+        log_message(f"Novo ícone de comentário criado: {name}", level="info", logger_name="acesso_livre_api")
+        return db_icon
+    except Exception as e:
+        log_message(f"Erro ao criar ícone de comentário: {str(e)}", level="error", logger_name="acesso_livre_api")
+        raise CommentGenericException()
+
+
+@router.get(
+    "/icons/",
+    **docs.GET_ALL_COMMENT_ICONS_DOCS,
+)
+async def get_all_comment_icons(
+    db: Session = Depends(get_db),
+):
+    """Obter todos os ícones de comentário."""
+    try:
+        icons = await service.get_all_comment_icons(db=db)
+        return {"comment_icons": icons}
+    except Exception as e:
+        log_message(f"Erro ao obter ícones de comentário: {str(e)}", level="error", logger_name="acesso_livre_api")
+        raise CommentGenericException()
+
+
+@router.get(
+    "/icons/{icon_id}",
+    response_model=schemas.CommentIconResponse,
+    **docs.GET_COMMENT_ICON_BY_ID_DOCS,
+)
+async def get_comment_icon_by_id(
+    icon_id: int = Path(...),
+    db: Session = Depends(get_db),
+):
+    """Obter um ícone de comentário pelo ID."""
+    try:
+        icon = await service.get_comment_icon_by_id(db=db, icon_id=icon_id)
+        return icon
+    except Exception as e:
+        log_message(f"Erro ao obter ícone de comentário {icon_id}: {str(e)}", level="error", logger_name="acesso_livre_api")
+        raise CommentGenericException()
+
+
+@router.delete(
+    "/icons/{icon_id}",
+    **docs.DELETE_COMMENT_ICON_DOCS,
+)
+@dependencies.require_auth
+async def delete_comment_icon(
+    icon_id: int = Path(...),
+    authenticated_user: bool = dependencies.authenticated_user,
+    db: Session = Depends(get_db),
+):
+    """Deletar um ícone de comentário."""
+    try:
+        await service.delete_comment_icon(db=db, icon_id=icon_id)
+        log_message(f"Ícone de comentário {icon_id} deletado com sucesso", level="info", logger_name="acesso_livre_api")
+        return {"message": "Ícone deletado com sucesso"}
+    except Exception as e:
+        log_message(f"Erro ao deletar ícone de comentário {icon_id}: {str(e)}", level="error", logger_name="acesso_livre_api")
+        raise CommentGenericException()
 

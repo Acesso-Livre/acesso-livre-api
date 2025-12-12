@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from acesso_livre_api.src.locations.schemas import ImageResponse
 
 
@@ -12,13 +12,29 @@ class CommentStatus(str, Enum):
     REJECTED = "rejected"
 
 
+class CommentIconResponse(BaseModel):
+    """Schema para resposta de ícones de comentário."""
+    id: int
+    name: str
+    icon_url: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CommentIconCreateResponse(BaseModel):
+    """Schema para resposta de criação de ícone de comentário."""
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class CommentCreate(BaseModel):
     user_name: str = Field(..., max_length=30)
     rating: int = Field(..., ge=1, le=5)
     comment: str = Field(..., max_length=500)
     location_id: int
-    accessibility_item_ids: Optional[List[int]] = Field(default=None)
-    # images: Optional[List[str]] = None
+    comment_icon_ids: Optional[List[int]] = Field(default=None)
 
 
 class CommentCreateImages(BaseModel):
@@ -53,17 +69,15 @@ class CommentResponseOnlyStatusPending(BaseModel):
     status: CommentStatus
     images: List[ImageResponse]
     created_at: datetime
-    icon_url: Optional[str] = None
+    comment_icons: List[CommentIconResponse] = Field(default=[])
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CommentListResponse(BaseModel):
     comments: List[CommentResponseOnlyStatusPending]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CommentResponse(BaseModel):
@@ -75,17 +89,15 @@ class CommentResponse(BaseModel):
     status: CommentStatus
     images: List[ImageResponse]
     created_at: datetime
+    comment_icons: List[CommentIconResponse] = Field(default=[])
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CommentListByLocationResponse(BaseModel):
     comments: List[CommentResponse]
-    accessibility_items: List = Field(default=[])
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RecentCommentResponse(BaseModel):
@@ -94,9 +106,7 @@ class RecentCommentResponse(BaseModel):
     user_name: str
     description: str
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class RecentCommentsListResponse(BaseModel):
     comments: List[RecentCommentResponse]

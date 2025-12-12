@@ -20,9 +20,10 @@ async def test_create_comment_success(client: AsyncClient, created_location):
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_create_comment_with_accessibility_items(
+async def test_create_comment_with_comment_icons(
     client: AsyncClient, created_location, admin_auth_header, mocker
 ):
+    """Testa criação de comentário com ícones de comentário."""
     # Mock Supabase storage calls to avoid real HTTP connections in CI
     mocker.patch(
         "acesso_livre_api.storage.upload_image.upload_image",
@@ -34,43 +35,35 @@ async def test_create_comment_with_accessibility_items(
         return_value="https://mocked-signed-url.com/mocked_test_icon.png",
     )
 
-    # Primeiro criar um item de acessibilidade
+    # Primeiro criar um ícone de comentário
     from io import BytesIO
 
     fake_image = BytesIO(b"fake image content")
     fake_image.name = "test_icon.png"
 
-    item_response = await client.post(
-        "/api/locations/accessibility-items/",
-        data={"name": "Bebedouro Teste"},
+    icon_response = await client.post(
+        "/api/comments/icons/",
+        data={"name": "Feedback Icon"},
         files={"image": ("test_icon.png", fake_image, "image/png")},
         headers=admin_auth_header,
     )
 
-    if item_response.status_code == 200:
-        item_id = item_response.json()["id"]
+    if icon_response.status_code == 200:
+        icon_id = icon_response.json()["id"]
 
-        # Criar comentário com accessibility_item_ids
+        # Criar comentário com comment_icon_ids
         comment_data = {
             "user_name": "Test User",
             "rating": 5,
-            "comment": "Local com bebedouro acessível.",
+            "comment": "Comentário com ícone.",
             "location_id": created_location["id"],
-            "accessibility_item_ids": str(item_id),
+            "comment_icon_ids": str(icon_id),
         }
         response = await client.post("/api/comments/", data=comment_data)
         assert response.status_code == 200
         data = response.json()
         assert "id" in data
         assert data["status"] == "pending"
-
-        # Verificar se o item foi associado ao local
-        location_response = await client.get(
-            f"/api/comments/{created_location['id']}/comments"
-        )
-        assert location_response.status_code == 200
-        location_data = location_response.json()
-        assert "accessibility_items" in location_data
 
 
 @pytest.mark.asyncio

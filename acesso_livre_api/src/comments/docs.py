@@ -7,7 +7,7 @@ para manter o código do router limpo e organizado.
 # Documentação para o endpoint de criação de comentário
 CREATE_COMMENT_DOCS = {
     "summary": "Cria um novo comentário",
-    "description": "Cria um novo comentário com nome de usuário, avaliação, texto e uma lista opcional de imagens. Também permite vincular itens de acessibilidade ao local através do campo 'accessibility_item_ids' (IDs separados por vírgula). O comentário é salvo com o status 'pending' por padrão.",
+    "description": "Cria um novo comentário com nome de usuário, avaliação, texto e uma lista opcional de imagens. Também permite vincular ícones de comentário através do campo 'comment_icon_ids' (IDs separados por vírgula). O comentário é salvo com o status 'pending' por padrão.",
     "responses": {
         201: {
             "description": "Comentário criado com sucesso",
@@ -485,5 +485,87 @@ DELETE_IMAGE_DOCS = {
         },
     },
     "tags": ["Comentários"],
+}
+
+
+# Documentação para gerenciamento de ícones de comentário
+CREATE_COMMENT_ICON_DOCS = {
+    "summary": "Cria um novo ícone de comentário",
+    "description": "Cria um novo ícone de comentário que pode ser vinculado a comentários. Requer autenticação.",
+    "responses": {
+        201: {
+            "description": "Ícone de comentário criado com sucesso",
+            "content": {"application/json": {"example": {"id": 1, "name": "Ícone de Feedback"}}},
+        },
+        401: {
+            "description": "Não autenticado",
+        },
+        422: {
+            "description": "Erro de validação",
+        },
+    },
+    "tags": ["Comentários - Ícones"],
+}
+
+GET_ALL_COMMENT_ICONS_DOCS = {
+    "summary": "Lista todos os ícones de comentário",
+    "description": "Retorna uma lista de todos os ícones de comentário disponíveis com suas URLs assinadas.",
+    "responses": {
+        200: {
+            "description": "Lista de ícones de comentário",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "comment_icons": [
+                            {"id": 1, "name": "Feedback", "icon_url": "signed_url_1"},
+                            {"id": 2, "name": "Sugestão", "icon_url": "signed_url_2"},
+                        ]
+                    }
+                }
+            },
+        },
+    },
+    "tags": ["Comentários - Ícones"],
+}
+
+GET_COMMENT_ICON_BY_ID_DOCS = {
+    "summary": "Obtém um ícone de comentário pelo ID",
+    "description": "Retorna os detalhes de um ícone de comentário específico incluindo URL assinada.",
+    "responses": {
+        200: {
+            "description": "Ícone encontrado",
+            "content": {
+                "application/json": {
+                    "example": {"id": 1, "name": "Feedback", "icon_url": "signed_url"}
+                }
+            },
+        },
+        404: {
+            "description": "Ícone não encontrado",
+        },
+    },
+    "tags": ["Comentários - Ícones"],
+}
+
+DELETE_COMMENT_ICON_DOCS = {
+    "summary": "Deleta um ícone de comentário",
+    "description": "Remove um ícone de comentário do sistema. Requer autenticação.",
+    "responses": {
+        200: {
+            "description": "Ícone deletado com sucesso",
+            "content": {
+                "application/json": {
+                    "example": {"message": "Ícone deletado com sucesso"}
+                }
+            },
+        },
+        401: {
+            "description": "Não autenticado",
+        },
+        404: {
+            "description": "Ícone não encontrado",
+        },
+    },
+    "tags": ["Comentários - Ícones"],
 }
 
