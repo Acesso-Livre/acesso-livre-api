@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from cachetools import TTLCache
 from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
@@ -8,11 +9,31 @@ from acesso_livre_api.storage.client import supabase_client
 
 _semaphore = asyncio.Semaphore(10)  # Máximo 10 requisições paralelas
 
+# Cache de signed URLs: max 1000 URLs, TTL de 55 minutos (5 min antes de expirar)
+_url_cache: TTLCache = TTLCache(maxsize=1000, ttl=3300)
+_cache_lock = asyncio.Lock()
+
 
 async def get_signed_url(file_path: str, expires_in: int = 3600) -> str:
-    """Returns a signed URL for a file in Supabase storage that expires after a given time."""
+    """Returns a signed URL for a file in Supabase storage that expires after a given time.
+    
+    Uses in-memory cache to avoid repeated calls to Supabase for the same file.
+    Cache TTL is 55 minutes (5 minutes before the signed URL expires).
+    """
+    # Verificar cache primeiro
+    cache_key = f"{file_path}:{expires_in}"
+    
+    async with _cache_lock:
+        if cache_key in _url_cache:
+            logger.debug(f"Cache HIT for {file_path}")
+            return _url_cache[cache_key]
+    
     async with _semaphore:  # Controla concorrência
         try:
+            # Double-check cache após adquirir semaphore (outra task pode ter preenchido)
+            async with _cache_lock:
+                if cache_key in _url_cache:
+                    return _url_cache[cache_key]
 
             def _get_signed_url():
                 client = supabase_client()
@@ -22,6 +43,12 @@ async def get_signed_url(file_path: str, expires_in: int = 3600) -> str:
                 return signed_url_response.get("signedURL")
 
             signed_url = await run_in_threadpool(_get_signed_url)
+            
+            # Armazenar no cache
+            async with _cache_lock:
+                _url_cache[cache_key] = signed_url
+                logger.debug(f"Cache MISS - stored URL for {file_path}")
+            
             return signed_url
 
         except Exception as e:

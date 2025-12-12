@@ -18,6 +18,7 @@ alembic = "^1.17.1"
 supabase = "^2.24.0"
 aiosqlite = "^0.21.0"
 httpx = "^0.28.1"
+cachetools = "^5.5.0"
 
 [tool.pytest.ini_options]
 markers = ["integration: marca testes de integração"]
