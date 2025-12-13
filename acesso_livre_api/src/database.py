@@ -15,6 +15,9 @@ engine = create_async_engine(
     echo=False,
     future=True,
     pool_pre_ping=True,
+    pool_size=10,        # Conexões permanentes (Supabase Free: ~60 max)
+    max_overflow=15,     # Conexões extras sob demanda
+    pool_timeout=30,     # Timeout para obter conexão
 )
 
 AsyncSessionLocal = sessionmaker(
