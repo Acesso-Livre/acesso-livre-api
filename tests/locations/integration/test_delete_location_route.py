@@ -7,9 +7,16 @@ from acesso_livre_api.src.admins import dependencies
 client = TestClient(app)
 
 # Override dependencies to bypass auth
-app.dependency_overrides[dependencies.simple_token_verification] = lambda: True
 
-def test_delete_location_returns_correct_response():
+import pytest
+
+@pytest.fixture
+def override_auth():
+    app.dependency_overrides[dependencies.simple_token_verification] = lambda: True
+    yield
+    app.dependency_overrides.pop(dependencies.simple_token_verification, None)
+
+def test_delete_location_returns_correct_response(override_auth):
     """Test that delete location returns the correct JSON response structure."""
     with patch("acesso_livre_api.src.locations.service.delete_location") as mock_delete:
         mock_delete.return_value = True
