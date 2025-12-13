@@ -52,12 +52,20 @@ async def get_signed_url(file_path: str, expires_in: int = 3600) -> str:
             return signed_url
 
         except Exception as e:
-            logging.error(f"Error getting signed URL for {file_path}: {str(e)}")
+            error_str = str(e)
+            # Handle gracefully when file doesn't exist in storage
+            if "not_found" in error_str.lower() or "Object not found" in error_str:
+                logger.warning(f"File not found in storage: {file_path}")
+                return None
+            logging.error(f"Error getting signed URL for {file_path}: {error_str}")
             raise e
 
 
 async def get_signed_urls(file_paths: list[str], expires_in: int = 3600) -> list[str]:
-    """Returns a list of signed URLs for multiple files in Supabase storage."""
+    """Returns a list of signed URLs for multiple files in Supabase storage.
+    
+    Files that don't exist in storage are filtered out from the result.
+    """
     if not file_paths:
         return []
 
@@ -65,4 +73,5 @@ async def get_signed_urls(file_paths: list[str], expires_in: int = 3600) -> list
         *[get_signed_url(path, expires_in) for path in file_paths]
     )
 
-    return signed_urls
+    # Filter out None values (files that weren't found)
+    return [url for url in signed_urls if url is not None]
