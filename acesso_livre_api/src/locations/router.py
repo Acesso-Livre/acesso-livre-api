@@ -141,6 +141,6 @@ async def delete_location(
     authenticated_user: bool = dependencies.authenticated_user,
     db: AsyncSession = Depends(get_db),
 ):
-    result = await service.delete_location(db=db, location_id=location_id)
+    await service.delete_location(db=db, location_id=location_id)
     log_message(f"Localização com ID {location_id} deletada", level="info", logger_name="acesso_livre_api")
-    return result
+    return schemas.LocationDeleteResponse(message="Localização deletada com sucesso")

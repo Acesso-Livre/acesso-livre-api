@@ -146,20 +146,17 @@ class TestGetSignedUrlsCache:
         """Testa cache parcial - alguns arquivos no cache, outros não."""
         with patch("acesso_livre_api.storage.get_url.supabase_client") as mock_client:
             mock_storage = MagicMock()
-            mock_storage.create_signed_url.side_effect = [
-                {"signedURL": "https://url-a.com"},
-                {"signedURL": "https://url-b.com"},
-                {"signedURL": "https://url-c.com"},
-            ]
+            def mock_create_signed_url(path, expires):
+                return {"signedURL": f"https://url-{path.split('.')[0]}.com"}
+            
+            mock_storage.create_signed_url.side_effect = mock_create_signed_url
             mock_client.return_value.storage.from_.return_value = mock_storage
 
             # Primeira chamada com 2 arquivos
             await get_signed_urls(["a.jpg", "b.jpg"])
             
             # Segunda chamada com 3 arquivos (2 cached, 1 novo)
-            mock_storage.create_signed_url.side_effect = [
-                {"signedURL": "https://url-c.com"},
-            ]
+
             results = await get_signed_urls(["a.jpg", "b.jpg", "c.jpg"])
 
             assert len(results) == 3
