@@ -74,9 +74,12 @@ async def get_all_accessibility_items(db: AsyncSession):
 
         icon_urls = [item.icon_url for item in items if item.icon_url]
         get_signed_urls_list = await get_signed_urls(icon_urls)
+        
+        # Filter out None values (failed signed URLs)
+        valid_signed_urls = [url for url in get_signed_urls_list if url is not None]
 
         return schemas.AccessibilityItemResponseList(
-            accessibility_items=get_signed_urls_list
+            accessibility_items=valid_signed_urls
         )
 
     except Exception as e:
@@ -95,9 +98,10 @@ async def get_accessibility_item_by_id(db: AsyncSession, item_id: int):
         if not item:
             raise exceptions.LocationNotFoundException()
 
+        # get_signed_url now returns None on failure
         image_url = await get_signed_url(item.icon_url) if item.icon_url else None
         return schemas.AccessibilityItemResponse(
-            id=item.id, name=item.name, icon_url=image_url
+            id=item.id, name=item.name, icon_url=image_url or ""
         )
 
     except Exception as e:
@@ -160,10 +164,12 @@ async def get_location_by_id(
             else []
         )
 
-        # Criar um mapping de icon_url para signed_url
-        icon_url_mapping = dict(
-            zip(accessibility_items_icons, accessibility_items_signed_urls)
-        )
+        # Criar um mapping de icon_url para signed_url (ignorar None)
+        icon_url_mapping = {
+            url: signed_url
+            for url, signed_url in zip(accessibility_items_icons, accessibility_items_signed_urls)
+            if signed_url is not None
+        }
 
         response_data = schemas.LocationDetailResponse(
             id=location.id,

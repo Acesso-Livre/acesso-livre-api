@@ -74,13 +74,15 @@ async def get_comment(db: AsyncSession, comment_id: int):
         if comment.images is None:
             comment.images = []
         else:
-            comment.images = await get_signed_urls(comment.images)
+            signed_urls = await get_signed_urls(comment.images)
+            # Filter out images with failed signed URLs
+            comment.images = [url for url in signed_urls if url is not None]
 
         # Processar ícones de comentário para obter signed URLs
         for icon in _safe_list(getattr(comment, "comment_icons", None)):
                 if icon.icon_url:
                     signed_urls = await get_signed_urls([icon.icon_url])
-                    if signed_urls:
+                    if signed_urls and signed_urls[0] is not None:
                         icon.icon_url = signed_urls[0]
 
         log_message(f"Comentário {comment_id} recuperado com sucesso", level="info", logger_name="acesso_livre_api")
@@ -176,7 +178,7 @@ async def get_comments_with_status_pending(
             for icon in _safe_list(getattr(comment, "comment_icons", None)):
                     if icon.icon_url:
                         signed_urls = await get_signed_urls([icon.icon_url])
-                        if signed_urls:
+                        if signed_urls and signed_urls[0] is not None:
                             icon.icon_url = signed_urls[0]
                             
         log_message(f"{len(comments)} comentários pendentes recuperados com sucesso", level="info", logger_name="acesso_livre_api")
@@ -285,7 +287,7 @@ async def update_comment_status(
         for icon in _safe_list(getattr(comment, "comment_icons", None)):
                 if icon.icon_url:
                     signed_urls = await get_signed_urls([icon.icon_url])
-                    if signed_urls:
+                    if signed_urls and signed_urls[0] is not None:
                         icon.icon_url = signed_urls[0]
 
         logger.info(
@@ -400,7 +402,7 @@ async def get_all_comments_by_location_id(
             for icon in _safe_list(getattr(comment, "comment_icons", None)):
                     if icon.icon_url:
                         signed_urls = await get_signed_urls([icon.icon_url])
-                        if signed_urls:
+                        if signed_urls and signed_urls[0] is not None:
                             icon.icon_url = signed_urls[0]
 
         log_message(f"{len(comments)} comentários recuperados para o local {location_id}", level="info", logger_name="acesso_livre_api")
@@ -448,7 +450,7 @@ async def get_all_comments_with_accessibility_items(
             for icon in _safe_list(getattr(comment, "comment_icons", None)):
                     if icon.icon_url:
                         signed_urls = await get_signed_urls([icon.icon_url])
-                        if signed_urls:
+                        if signed_urls and signed_urls[0] is not None:
                             icon.icon_url = signed_urls[0]
 
         # Buscar itens de acessibilidade da localização
@@ -503,18 +505,20 @@ async def get_recent_comments(db: AsyncSession, limit: int = 3):
             if comment.images is None:
                 comment.images = []
             else:
-                comment.images = await get_signed_urls(comment.images)
+                signed_urls = await get_signed_urls(comment.images)
+                # Filter out images with failed signed URLs
+                comment.images = [url for url in signed_urls if url is not None]
 
             # Campo legado usado em mocks/testes unitários
             if hasattr(comment, "icon_url") and getattr(comment, "icon_url"):
                 signed_urls = await get_signed_urls([comment.icon_url])
-                if signed_urls:
+                if signed_urls and signed_urls[0] is not None:
                     comment.icon_url = signed_urls[0]
             
             for icon in _safe_list(getattr(comment, "comment_icons", None)):
                     if icon.icon_url:
                         signed_urls = await get_signed_urls([icon.icon_url])
-                        if signed_urls:
+                        if signed_urls and signed_urls[0] is not None:
                             icon.icon_url = signed_urls[0]
 
         log_message(f"{len(comments)} comentários recentes recuperados", level="info", logger_name="acesso_livre_api")
@@ -647,10 +651,14 @@ async def get_all_comment_icons(db: AsyncSession):
         icon_urls = [icon.icon_url for icon in icons if icon.icon_url]
         signed_urls_list = await get_signed_urls(icon_urls) if icon_urls else []
 
-        # Mapear icon_url para signed_url
-        icon_url_mapping = dict(zip(icon_urls, signed_urls_list))
+        # Mapear icon_url para signed_url (ignorar valores None)
+        icon_url_mapping = {
+            url: signed_url
+            for url, signed_url in zip(icon_urls, signed_urls_list)
+            if signed_url is not None
+        }
 
-        # Atualizar os ícones com signed URLs
+        # Atualizar os ícones com signed URLs (manter original se falhou)
         for icon in icons:
             if icon.icon_url in icon_url_mapping:
                 icon.icon_url = icon_url_mapping[icon.icon_url]
@@ -676,7 +684,7 @@ async def get_comment_icon_by_id(db: AsyncSession, icon_id: int):
         # Obter signed URL
         if icon.icon_url:
             signed_urls = await get_signed_urls([icon.icon_url])
-            if signed_urls:
+            if signed_urls and signed_urls[0] is not None:
                 icon.icon_url = signed_urls[0]
 
         return icon
@@ -734,7 +742,7 @@ async def update_comment_icon(
         # Obter signed URL para retorno
         if icon.icon_url:
             signed_urls = await get_signed_urls([icon.icon_url])
-            if signed_urls:
+            if signed_urls and signed_urls[0] is not None:
                 icon.icon_url = signed_urls[0]
 
         log_message(

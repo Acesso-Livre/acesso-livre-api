@@ -53,7 +53,7 @@ async def get_signed_url(file_path: str, expires_in: int = 3600) -> str:
 
         except Exception as e:
             logging.error(f"Error getting signed URL for {file_path}: {str(e)}")
-            raise e
+            return None
 
 
 async def get_signed_urls(file_paths: list[str], expires_in: int = 3600) -> list[str]:

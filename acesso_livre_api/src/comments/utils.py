@@ -21,12 +21,13 @@ async def get_images_with_ids(file_paths: list[str]) -> list[schemas.ImageRespon
     
     signed_urls = await get_signed_urls(file_paths)
     
+    # Filter out images where signed URL generation failed (None)
     return [
         schemas.ImageResponse(
             id=extract_image_id(path),
             url=url
         )
-        for path, url in zip(file_paths, signed_urls)
+        for path, url in zip(file_paths, signed_urls) if url is not None
     ]
 
 
