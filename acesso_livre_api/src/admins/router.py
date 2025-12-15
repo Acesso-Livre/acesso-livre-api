@@ -18,11 +18,11 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-# TODO: Adicionar auth
 @router.post(
     "/register",
     response_model=schemas.RegisterResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[dependencies.authenticated_user],
     **REGISTER_DOCS,
 )
 async def register_admin(admin: schemas.AdminCreate, db: AsyncSession = Depends(get_db)):

@@ -11,10 +11,10 @@ user_data = {
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_forgot_password_success(client: AsyncClient):
+async def test_forgot_password_success(client: AsyncClient, admin_auth_header):
     """Testa a solicitação de recuperação de senha com um email válido."""
     user_to_register = {"email": "reset.user@empresa.com", "password": "OldPassword123!"}
-    await client.post("/api/admins/register", json=user_to_register)
+    await client.post("/api/admins/register", json=user_to_register, headers=admin_auth_header)
 
     with patch(
         "acesso_livre_api.src.admins.service.send_password_reset_email",
@@ -46,10 +46,10 @@ async def test_forgot_password_nonexistent_email(client: AsyncClient):
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_password_reset_success(client: AsyncClient, monkeypatch):
+async def test_password_reset_success(client: AsyncClient, monkeypatch, admin_auth_header):
     """Testa a atualização da senha com um token/código válido."""
     user_to_register = {"email": "reset.user@empresa.com", "password": "OldPassword123!"}
-    await client.post("/api/admins/register", json=user_to_register)
+    await client.post("/api/admins/register", json=user_to_register, headers=admin_auth_header)
 
     fixed_code = "123456"
     monkeypatch.setattr(
@@ -83,11 +83,11 @@ async def test_password_reset_success(client: AsyncClient, monkeypatch):
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_password_reset_invalid_token(client: AsyncClient):
+async def test_password_reset_invalid_token(client: AsyncClient, admin_auth_header):
     """Testa a atualização da senha com um token/código inválido."""
 
     user_to_register = {"email": "reset.user@empresa.com", "password": "OldPassword123!"}
-    await client.post("/api/admins/register", json=user_to_register)
+    await client.post("/api/admins/register", json=user_to_register, headers=admin_auth_header)
 
     with patch(
         "acesso_livre_api.src.admins.service.send_password_reset_email",
@@ -110,10 +110,10 @@ async def test_password_reset_invalid_token(client: AsyncClient):
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_forgot_password_email_failure(client: AsyncClient):
+async def test_forgot_password_email_failure(client: AsyncClient, admin_auth_header):
     """Testa erro quando falha o envio de email."""
     user_to_register = {"email": "reset.user@empresa.com", "password": "OldPassword123!"}
-    await client.post("/api/admins/register", json=user_to_register)
+    await client.post("/api/admins/register", json=user_to_register, headers=admin_auth_header)
 
     with patch(
         "acesso_livre_api.src.admins.service.send_password_reset_email",

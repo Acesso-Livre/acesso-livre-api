@@ -66,6 +66,17 @@ Renomeie o arquivo `.env.example` para `.env` e configure as seguintes variávei
 | `BUCKET_SECRET_KEY`           | Chave de serviço (Service Role) do Supabase                 |
 | `EMAILJS_*`                   | Configurações para envio de emails via EmailJS              |
 
+## 👤 Criação de Administrador
+
+Para criar o primeiro administrador (que terá acesso para criar outros via API), utilize o script dedicado na raiz do projeto:
+
+```bash
+# Sintaxe: poetry run python create_admin.py <email> <senha>
+poetry run python create_admin.py admin@example.com senha123
+```
+
+> **Nota:** Este script conecta diretamente ao banco de dados, ignorando a autenticação da API. Use-o apenas para criar o usuário inicial ou em casos de recuperação de acesso.
+
 ## 🔄 Migrations (Banco de Dados)
 
 O projeto utiliza **Alembic** para gerenciamento de versões do banco de dados.
@@ -218,7 +229,7 @@ k6 run k6/stress-test.js
 | Duração Média | 3650 ms  |
 | P95           | 11390 ms |
 | P99           | 11890 ms |
-| Taxa de Erro  | 0,00% ✅ |
+| Taxa de Erro  | 0,00% ✅  |
 
 ### O que significam as métricas?
 
